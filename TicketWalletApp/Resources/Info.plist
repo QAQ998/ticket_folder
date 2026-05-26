@@ -11,7 +11,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>私人电子票夹</string>
+	<string>散场记</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
@@ -21,7 +21,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>用于拍摄实体电影票根，保存到你的私人电子票夹。</string>
+	<string>用于拍摄电影票根，保存到散场记。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择已经拍好的电影票根照片。</string>
 	<key>TMDB_API_KEY</key>

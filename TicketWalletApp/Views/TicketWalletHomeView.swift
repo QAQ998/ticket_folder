@@ -63,10 +63,10 @@ struct TicketWalletHomeView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("私人电子票夹")
+            Text("散场记")
                 .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(TicketPalette.paper)
-            Text("把实体票根一张一张录入，留住每一次走进影院的时间。")
+            Text("开场前也可以记，散场后慢慢收好。")
                 .font(.subheadline)
                 .foregroundStyle(TicketPalette.paper.opacity(0.72))
         }
