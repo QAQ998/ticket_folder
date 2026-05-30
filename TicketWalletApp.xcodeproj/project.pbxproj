@@ -25,6 +25,7 @@
 		01A000000000000000000010 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		01A000000000000000000011 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		01A000000000000000000012 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig.example; sourceTree = "<group>"; };
+		01A000000000000000000025 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXBuildFile section */
@@ -41,6 +42,7 @@
 		01B00000000000000000000C /* MovieSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00000000000000000000C /* MovieSearchView.swift */; };
 		01B00000000000000000000D /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00000000000000000000D /* ImagePicker.swift */; };
 		01B00000000000000000000E /* SharedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00000000000000000000E /* SharedViews.swift */; };
+		01B00000000000000000000F /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000025 /* RootTabView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -56,7 +58,7 @@
 		01A000000000000000000016 /* Products */ = {isa = PBXGroup; children = (01A000000000000000000001 /* TicketWalletApp.app */); name = Products; sourceTree = "<group>"; };
 		01A000000000000000000017 /* Models */ = {isa = PBXGroup; children = (01A000000000000000000003 /* MovieRecord.swift */); path = Models; sourceTree = "<group>"; };
 		01A000000000000000000018 /* Services */ = {isa = PBXGroup; children = (01A000000000000000000004 /* TicketImageStore.swift */, 01A000000000000000000005 /* TicketOCRService.swift */, 01A000000000000000000006 /* TicketParsingService.swift */, 01A000000000000000000007 /* TMDBClient.swift */, 01A000000000000000000008 /* PosterCacheStore.swift */); path = Services; sourceTree = "<group>"; };
-		01A000000000000000000019 /* Views */ = {isa = PBXGroup; children = (01A000000000000000000009 /* TicketWalletHomeView.swift */, 01A00000000000000000000A /* TicketRecordDetailView.swift */, 01A00000000000000000000B /* TicketRecordEditorView.swift */, 01A00000000000000000000C /* MovieSearchView.swift */, 01A00000000000000000000D /* ImagePicker.swift */, 01A00000000000000000000E /* SharedViews.swift */); path = Views; sourceTree = "<group>"; };
+		01A000000000000000000019 /* Views */ = {isa = PBXGroup; children = (01A000000000000000000025 /* RootTabView.swift */, 01A000000000000000000009 /* TicketWalletHomeView.swift */, 01A00000000000000000000A /* TicketRecordDetailView.swift */, 01A00000000000000000000B /* TicketRecordEditorView.swift */, 01A00000000000000000000C /* MovieSearchView.swift */, 01A00000000000000000000D /* ImagePicker.swift */, 01A00000000000000000000E /* SharedViews.swift */); path = Views; sourceTree = "<group>"; };
 		01A00000000000000000001A /* Resources */ = {isa = PBXGroup; children = (01A00000000000000000000F /* Info.plist */); path = Resources; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
@@ -73,7 +75,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		01A00000000000000000001D /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (01B000000000000000000002 /* TicketWalletApp.swift in Sources */, 01B000000000000000000003 /* MovieRecord.swift in Sources */, 01B000000000000000000004 /* TicketImageStore.swift in Sources */, 01B000000000000000000005 /* TicketOCRService.swift in Sources */, 01B000000000000000000006 /* TicketParsingService.swift in Sources */, 01B000000000000000000007 /* TMDBClient.swift in Sources */, 01B000000000000000000008 /* PosterCacheStore.swift in Sources */, 01B000000000000000000009 /* TicketWalletHomeView.swift in Sources */, 01B00000000000000000000A /* TicketRecordDetailView.swift in Sources */, 01B00000000000000000000B /* TicketRecordEditorView.swift in Sources */, 01B00000000000000000000C /* MovieSearchView.swift in Sources */, 01B00000000000000000000D /* ImagePicker.swift in Sources */, 01B00000000000000000000E /* SharedViews.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+		01A00000000000000000001D /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (01B000000000000000000002 /* TicketWalletApp.swift in Sources */, 01B000000000000000000003 /* MovieRecord.swift in Sources */, 01B000000000000000000004 /* TicketImageStore.swift in Sources */, 01B000000000000000000005 /* TicketOCRService.swift in Sources */, 01B000000000000000000006 /* TicketParsingService.swift in Sources */, 01B000000000000000000007 /* TMDBClient.swift in Sources */, 01B000000000000000000008 /* PosterCacheStore.swift in Sources */, 01B000000000000000000009 /* TicketWalletHomeView.swift in Sources */, 01B00000000000000000000A /* TicketRecordDetailView.swift in Sources */, 01B00000000000000000000B /* TicketRecordEditorView.swift in Sources */, 01B00000000000000000000C /* MovieSearchView.swift in Sources */, 01B00000000000000000000D /* ImagePicker.swift in Sources */, 01B00000000000000000000E /* SharedViews.swift in Sources */, 01B00000000000000000000F /* RootTabView.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */

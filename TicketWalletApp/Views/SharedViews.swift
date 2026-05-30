@@ -1,25 +1,22 @@
 import SwiftUI
 
 struct TicketPalette {
-    static let paper = Color(red: 0.96, green: 0.92, blue: 0.82)
-    static let paperDeep = Color(red: 0.89, green: 0.83, blue: 0.70)
-    static let ink = Color(red: 0.15, green: 0.13, blue: 0.10)
-    static let muted = Color(red: 0.49, green: 0.42, blue: 0.34)
-    static let accent = Color(red: 0.60, green: 0.10, blue: 0.13)
-    static let gold = Color(red: 0.78, green: 0.56, blue: 0.26)
-    static let green = Color(red: 0.18, green: 0.38, blue: 0.31)
-    static let dark = Color(red: 0.07, green: 0.07, blue: 0.06)
-    static let charcoal = Color(red: 0.13, green: 0.12, blue: 0.10)
+    static let background = Color(red: 0.965, green: 0.965, blue: 0.97)
+    static let surface = Color.white
+    static let paper = Color.white
+    static let paperDeep = Color(red: 0.93, green: 0.93, blue: 0.94)
+    static let ink = Color.black
+    static let muted = Color(red: 0.43, green: 0.43, blue: 0.46)
+    static let accent = Color.black
+    static let gold = Color.black
+    static let green = Color.black
+    static let dark = Color.black
+    static let charcoal = Color(red: 0.08, green: 0.08, blue: 0.09)
 }
 
 struct TicketBackground: View {
     var body: some View {
-        LinearGradient(
-            colors: [TicketPalette.dark, TicketPalette.charcoal, Color(red: 0.18, green: 0.14, blue: 0.12)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
+        TicketPalette.background.ignoresSafeArea()
     }
 }
 
@@ -51,10 +48,10 @@ struct TicketPill: View {
     var body: some View {
         Text(text)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(tint)
+            .foregroundStyle(TicketPalette.ink)
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .background(tint.opacity(0.10))
+            .background(Color.black.opacity(0.06))
             .clipShape(Capsule())
     }
 }
@@ -110,6 +107,10 @@ struct TicketPhotoView: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+            } else if let image = BundleImageStore.image(named: filename) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
             } else {
                 ZStack {
                     TicketPalette.paper
@@ -120,6 +121,14 @@ struct TicketPhotoView: View {
             }
         }
         .clipped()
+    }
+}
+
+enum BundleImageStore {
+    static func image(named filename: String?) -> UIImage? {
+        guard let filename, !filename.isEmpty else { return nil }
+        guard let url = Bundle.main.url(forResource: filename, withExtension: nil) else { return nil }
+        return UIImage(contentsOfFile: url.path())
     }
 }
 

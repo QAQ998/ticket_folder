@@ -6,6 +6,7 @@ struct TicketWalletHomeView: View {
     @Query(sort: \MovieRecord.watchedAt, order: .reverse) private var records: [MovieRecord]
     @State private var searchText = ""
     @State private var showingEditor = false
+    @FocusState private var isSearchFocused: Bool
 
     private var filteredRecords: [MovieRecord] {
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -22,7 +23,8 @@ struct TicketWalletHomeView: View {
             ZStack {
                 TicketBackground()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        searchBar
                         header
 
                         if filteredRecords.isEmpty {
@@ -39,39 +41,56 @@ struct TicketWalletHomeView: View {
                         }
                     }
                     .padding(18)
+                    .padding(.bottom, 10)
                 }
+                .scrollDismissesKeyboard(.interactively)
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        isSearchFocused = false
+                    }
+                )
             }
             .navigationDestination(for: MovieRecord.self) { record in
                 TicketRecordDetailView(record: record)
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingEditor = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.headline)
-                    }
-                    .tint(TicketPalette.paper)
-                }
-            }
             .sheet(isPresented: $showingEditor) {
                 TicketRecordEditorView()
             }
-            .searchable(text: $searchText, prompt: "搜索电影或影院")
+            .onAppear {
+                isSearchFocused = false
+            }
+        }
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(TicketPalette.muted)
+            TextField("搜索电影或影院", text: $searchText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($isSearchFocused)
+        }
+        .font(.body)
+        .padding(.horizontal, 14)
+        .frame(height: 46)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.08), lineWidth: 1)
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 8) {
-                TicketPill(text: "\(records.count) 张票根", tint: TicketPalette.gold)
                 Text("散场记")
-                    .font(.system(size: 38, weight: .semibold, design: .serif))
-                    .foregroundStyle(TicketPalette.paper)
+                    .font(.system(size: 40, weight: .semibold))
+                    .foregroundStyle(TicketPalette.ink)
                 Text("开场前也可以记，散场后慢慢收好。")
                     .font(.subheadline)
-                    .foregroundStyle(TicketPalette.paper.opacity(0.72))
+                    .foregroundStyle(TicketPalette.muted)
             }
 
             Button {
@@ -83,7 +102,7 @@ struct TicketWalletHomeView: View {
                     .padding(.vertical, 12)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(TicketPalette.paper)
+            .foregroundStyle(.white)
             .background(TicketPalette.accent)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
@@ -95,7 +114,7 @@ struct TicketWalletHomeView: View {
         VStack(spacing: 18) {
             Image(systemName: "ticket.fill")
                 .font(.system(size: 50))
-                .foregroundStyle(TicketPalette.accent)
+                .foregroundStyle(.black)
             Text("还没有票根")
                 .font(.title3.weight(.semibold))
             Text("从一张电影票开始，慢慢收起你的观影轨迹。")
@@ -115,7 +134,7 @@ struct TicketWalletHomeView: View {
         .padding(24)
         .frame(maxWidth: .infinity)
         .background(
-            TicketPalette.paper
+            TicketPalette.surface
                 .overlay(alignment: .top) {
                     TicketDashedDivider()
                         .padding(.top, 14)
@@ -125,6 +144,10 @@ struct TicketWalletHomeView: View {
                         .padding(.bottom, 14)
                 }
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
@@ -133,15 +156,15 @@ private struct TicketCard: View {
     let record: MovieRecord
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                PosterView(filename: record.posterLocalPath)
-                    .frame(width: 72, height: 104)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                thumbnail
+                    .frame(width: 64, height: 92)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(record.movieTitle.isEmpty ? "未命名电影" : record.movieTitle)
-                        .font(.headline)
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(TicketPalette.ink)
                         .lineLimit(2)
                     Text([record.year, record.director].filter { !$0.isEmpty }.joined(separator: " · "))
@@ -170,14 +193,23 @@ private struct TicketCard: View {
         }
         .padding(14)
         .background(
-            TicketPalette.paper
-                .overlay(alignment: .leading) {
-                    Rectangle()
-                        .fill(TicketPalette.accent)
-                        .frame(width: 5)
-                }
+            TicketPalette.surface
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .shadow(color: .black.opacity(0.24), radius: 10, x: 0, y: 6)
+        .shadow(color: .black.opacity(0.05), radius: 18, x: 0, y: 8)
+    }
+
+    private var thumbnail: some View {
+        Group {
+            if record.posterLocalPath != nil {
+                PosterView(filename: record.posterLocalPath)
+            } else {
+                TicketPhotoView(filename: record.ticketImagePaths.first)
+            }
+        }
     }
 }

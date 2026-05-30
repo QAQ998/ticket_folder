@@ -15,7 +15,7 @@ struct TicketWalletApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TicketWalletHomeView()
+            RootTabView()
         }
         .modelContainer(modelContainer)
     }

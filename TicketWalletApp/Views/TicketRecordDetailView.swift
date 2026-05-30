@@ -48,7 +48,6 @@ struct TicketRecordDetailView: View {
         }
         .navigationTitle(record.movieTitle.isEmpty ? "票根详情" : record.movieTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button("编辑") {
