@@ -59,84 +59,110 @@ struct TicketRecordEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("票根图片") {
-                    if let first = ticketImagePaths.first {
-                        TicketPhotoView(filename: first)
-                            .frame(height: 180)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
+            ZStack {
+                Color(red: 0.95, green: 0.92, blue: 0.86)
+                    .ignoresSafeArea()
 
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label("从相册选择票根", systemImage: "photo")
-                    }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        editorSection("票根图片", systemImage: "ticket") {
+                            if let first = ticketImagePaths.first {
+                                TicketPhotoView(filename: first)
+                                    .frame(height: 190)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            } else {
+                                emptyTicketPreview
+                            }
 
-                    Button {
-                        showingCamera = true
-                    } label: {
-                        Label("拍摄票根", systemImage: "camera")
-                    }
+                            HStack(spacing: 10) {
+                                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                                    Label("相册", systemImage: "photo")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(TicketPalette.green)
 
-                    if isRecognizing {
-                        ProgressView("正在识别票面文字")
-                    }
-                }
+                                Button {
+                                    showingCamera = true
+                                } label: {
+                                    Label("拍摄", systemImage: "camera")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(TicketPalette.accent)
+                            }
 
-                Section("票面信息") {
-                    TextField("电影名", text: $movieTitle)
-                    DatePicker("观影时间", selection: $watchedAt)
-                    TextField("影院", text: $cinema)
-                    TextField("影厅", text: $hall)
-                    TextField("座位", text: $seat)
-                    TextField("票价", text: $ticketPrice)
-                }
+                            if isRecognizing {
+                                ProgressView("正在识别票面文字")
+                                    .foregroundStyle(TicketPalette.muted)
+                            }
+                        }
 
-                Section("电影资料") {
-                    HStack {
-                        PosterView(filename: posterLocalPath)
-                            .frame(width: 58, height: 84)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                        VStack(alignment: .leading) {
-                            Text(movieTitle.isEmpty ? "先填写或识别电影名" : movieTitle)
-                                .font(.headline)
-                            Text([year, director].filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.caption)
+                        editorSection("票面信息", systemImage: "text.viewfinder") {
+                            TextField("电影名", text: $movieTitle)
+                                .textFieldStyle(.roundedBorder)
+                            DatePicker("观影时间", selection: $watchedAt)
+                            TextField("影院", text: $cinema)
+                                .textFieldStyle(.roundedBorder)
+                            TextField("影厅", text: $hall)
+                                .textFieldStyle(.roundedBorder)
+                            TextField("座位", text: $seat)
+                                .textFieldStyle(.roundedBorder)
+                            TextField("票价", text: $ticketPrice)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        editorSection("电影资料", systemImage: "film") {
+                            HStack(spacing: 12) {
+                                PosterView(filename: posterLocalPath)
+                                    .frame(width: 64, height: 94)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(movieTitle.isEmpty ? "先填写或识别电影名" : movieTitle)
+                                        .font(.headline)
+                                        .foregroundStyle(TicketPalette.ink)
+                                    Text([year, director].filter { !$0.isEmpty }.joined(separator: " · "))
+                                        .font(.caption)
+                                        .foregroundStyle(TicketPalette.muted)
+                                    if metadataSource == "tmdb" {
+                                        TicketPill(text: "海报已缓存")
+                                    }
+                                }
+                            }
+
+                            Button {
+                                showingMovieSearch = true
+                            } label: {
+                                Label("从 TMDB 补全资料", systemImage: "magnifyingglass")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(TicketPalette.accent)
+
+                            TextField("年份", text: $year)
+                                .textFieldStyle(.roundedBorder)
+                            TextField("导演", text: $director)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        editorSection("私人记录", systemImage: "square.and.pencil") {
+                            RatingPicker(rating: $rating)
+                            TextField("短评，可留空", text: $note, axis: .vertical)
+                                .textFieldStyle(.roundedBorder)
+                                .lineLimit(3...8)
+                        }
+
+                        if !message.isEmpty {
+                            Text(message)
+                                .font(.footnote)
                                 .foregroundStyle(TicketPalette.muted)
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(TicketPalette.paper.opacity(0.8))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }
-
-                    Button {
-                        showingMovieSearch = true
-                    } label: {
-                        Label("从 TMDB 补全资料", systemImage: "magnifyingglass")
-                    }
-
-                    TextField("年份", text: $year)
-                    TextField("导演", text: $director)
-
-                    if metadataSource == "tmdb" {
-                        Text("资料来自 TMDB，海报已缓存到本机。")
-                            .font(.caption)
-                            .foregroundStyle(TicketPalette.muted)
-                    }
-                }
-
-                Section("私人记录") {
-                    Picker("评分", selection: $rating) {
-                        Text("未评分").tag(0)
-                        ForEach(1...5, id: \.self) { value in
-                            Text("\(value) 星").tag(value)
-                        }
-                    }
-                    TextField("短评", text: $note, axis: .vertical)
-                        .lineLimit(3...8)
-                }
-
-                if !message.isEmpty {
-                    Section {
-                        Text(message)
-                            .foregroundStyle(TicketPalette.muted)
-                    }
+                    .padding(16)
                 }
             }
             .navigationTitle(record == nil ? "录入票根" : "编辑票根")
@@ -183,6 +209,37 @@ struct TicketRecordEditorView: View {
                 }
             }
         }
+    }
+
+    private var emptyTicketPreview: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "ticket")
+                .font(.system(size: 42))
+                .foregroundStyle(TicketPalette.accent)
+            Text("添加一张纸质票根或电子票截图")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(TicketPalette.ink)
+            Text("识别后可以手动校对信息")
+                .font(.caption)
+                .foregroundStyle(TicketPalette.muted)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 160)
+        .background(TicketPalette.paperDeep.opacity(0.45))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func editorSection<Content: View>(_ title: String, systemImage: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+                .foregroundStyle(TicketPalette.ink)
+            content()
+        }
+        .padding(15)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func importPhoto(_ item: PhotosPickerItem?) async {
