@@ -97,14 +97,8 @@ struct TicketWalletHomeView: View {
                 showingEditor = true
             } label: {
                 Label("录入一张票根", systemImage: "ticket")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.white)
-            .background(TicketPalette.accent)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .buttonStyle(PrimaryActionButtonStyle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
@@ -121,14 +115,6 @@ struct TicketWalletHomeView: View {
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(TicketPalette.muted)
-            Button {
-                showingEditor = true
-            } label: {
-                Label("录入第一张", systemImage: "camera.viewfinder")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(TicketPalette.accent)
         }
         .foregroundStyle(TicketPalette.ink)
         .padding(24)
@@ -146,7 +132,7 @@ struct TicketWalletHomeView: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                .stroke(TicketPalette.border, lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
@@ -197,7 +183,7 @@ private struct TicketCard: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                .stroke(TicketPalette.border, lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.05), radius: 18, x: 0, y: 8)

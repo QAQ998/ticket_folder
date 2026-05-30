@@ -1,17 +1,19 @@
 import SwiftUI
 
 struct TicketPalette {
-    static let background = Color(red: 0.965, green: 0.965, blue: 0.97)
+    static let background = Color(red: 0.97, green: 0.965, blue: 0.945)
     static let surface = Color.white
-    static let paper = Color.white
-    static let paperDeep = Color(red: 0.93, green: 0.93, blue: 0.94)
-    static let ink = Color.black
-    static let muted = Color(red: 0.43, green: 0.43, blue: 0.46)
-    static let accent = Color.black
-    static let gold = Color.black
-    static let green = Color.black
-    static let dark = Color.black
-    static let charcoal = Color(red: 0.08, green: 0.08, blue: 0.09)
+    static let paper = Color(red: 1.0, green: 0.995, blue: 0.975)
+    static let paperDeep = Color(red: 0.93, green: 0.915, blue: 0.875)
+    static let ink = Color(red: 0.10, green: 0.10, blue: 0.11)
+    static let muted = Color(red: 0.45, green: 0.43, blue: 0.40)
+    static let accent = Color(red: 0.12, green: 0.18, blue: 0.24)
+    static let secondaryAccent = Color(red: 0.52, green: 0.43, blue: 0.34)
+    static let gold = Color(red: 0.70, green: 0.52, blue: 0.28)
+    static let green = Color(red: 0.22, green: 0.34, blue: 0.29)
+    static let dark = Color(red: 0.08, green: 0.08, blue: 0.09)
+    static let charcoal = Color(red: 0.16, green: 0.16, blue: 0.17)
+    static let border = Color.black.opacity(0.08)
 }
 
 struct TicketBackground: View {
@@ -51,7 +53,7 @@ struct TicketPill: View {
             .foregroundStyle(TicketPalette.ink)
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .background(Color.black.opacity(0.06))
+            .background(tint.opacity(0.10))
             .clipShape(Capsule())
     }
 }
@@ -70,8 +72,40 @@ struct TicketSectionCard<Content: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(TicketPalette.paper.opacity(0.94))
+        .background(TicketPalette.surface)
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(TicketPalette.border, lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct PrimaryActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .foregroundStyle(.white)
+            .background(configuration.isPressed ? TicketPalette.accent.opacity(0.82) : TicketPalette.accent)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct SecondaryActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .foregroundStyle(TicketPalette.ink)
+            .background(configuration.isPressed ? TicketPalette.paperDeep : TicketPalette.paper)
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(TicketPalette.border, lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

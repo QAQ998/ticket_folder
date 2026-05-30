@@ -32,6 +32,7 @@ struct TicketRecordEditorView: View {
     @State private var showingMovieSearch = false
     @State private var isRecognizing = false
     @State private var message = ""
+    @State private var recognizedLines: [String] = []
 
     private let ocrService = TicketOCRService()
     private let parsingService = TicketParsingService()
@@ -60,8 +61,7 @@ struct TicketRecordEditorView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.95, green: 0.92, blue: 0.86)
-                    .ignoresSafeArea()
+                TicketPalette.background.ignoresSafeArea()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
@@ -77,19 +77,15 @@ struct TicketRecordEditorView: View {
                             HStack(spacing: 10) {
                                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                                     Label("相册", systemImage: "photo")
-                                        .frame(maxWidth: .infinity)
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(TicketPalette.green)
+                                .buttonStyle(SecondaryActionButtonStyle())
 
                                 Button {
                                     showingCamera = true
                                 } label: {
                                     Label("拍摄", systemImage: "camera")
-                                        .frame(maxWidth: .infinity)
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(TicketPalette.accent)
+                                .buttonStyle(SecondaryActionButtonStyle())
                             }
 
                             if isRecognizing {
@@ -99,17 +95,34 @@ struct TicketRecordEditorView: View {
                         }
 
                         editorSection("票面信息", systemImage: "text.viewfinder") {
-                            TextField("电影名", text: $movieTitle)
-                                .textFieldStyle(.roundedBorder)
-                            DatePicker("观影时间", selection: $watchedAt)
-                            TextField("影院", text: $cinema)
-                                .textFieldStyle(.roundedBorder)
-                            TextField("影厅", text: $hall)
-                                .textFieldStyle(.roundedBorder)
-                            TextField("座位", text: $seat)
-                                .textFieldStyle(.roundedBorder)
-                            TextField("票价", text: $ticketPrice)
-                                .textFieldStyle(.roundedBorder)
+                            candidateField("电影名", text: $movieTitle)
+                            candidateDateField
+                            candidateField("影院", text: $cinema)
+                            candidateField("影厅", text: $hall)
+                            candidateField("座位", text: $seat)
+                            candidateField("票价", text: $ticketPrice)
+                        }
+
+                        if !recognizedLines.isEmpty {
+                            editorSection("OCR 候选文本", systemImage: "text.magnifyingglass") {
+                                Text("识别结果可能有误。你可以在每个字段右侧选择候选文本，也可以直接手动输入。")
+                                    .font(.footnote)
+                                    .foregroundStyle(TicketPalette.muted)
+
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
+                                    ForEach(recognizedLines, id: \.self) { line in
+                                        Text(line)
+                                            .font(.caption)
+                                            .lineLimit(2)
+                                            .foregroundStyle(TicketPalette.ink)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 8)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(TicketPalette.paper)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+                                }
+                            }
                         }
 
                         editorSection("电影资料", systemImage: "film") {
@@ -134,21 +147,16 @@ struct TicketRecordEditorView: View {
                                 showingMovieSearch = true
                             } label: {
                                 Label("从 TMDB 补全资料", systemImage: "magnifyingglass")
-                                    .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(.bordered)
-                            .tint(TicketPalette.accent)
+                            .buttonStyle(SecondaryActionButtonStyle())
 
-                            TextField("年份", text: $year)
-                                .textFieldStyle(.roundedBorder)
-                            TextField("导演", text: $director)
-                                .textFieldStyle(.roundedBorder)
+                            candidateField("年份", text: $year)
+                            candidateField("导演", text: $director)
                         }
 
                         editorSection("私人记录", systemImage: "square.and.pencil") {
                             RatingPicker(rating: $rating)
-                            TextField("短评，可留空", text: $note, axis: .vertical)
-                                .textFieldStyle(.roundedBorder)
+                            styledTextField("短评，可留空", text: $note, axis: .vertical)
                                 .lineLimit(3...8)
                         }
 
@@ -229,6 +237,74 @@ struct TicketRecordEditorView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
+    private func styledTextField(_ placeholder: String, text: Binding<String>, axis: Axis = .horizontal) -> some View {
+        TextField(placeholder, text: text, axis: axis)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 46)
+            .background(TicketPalette.paper)
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(TicketPalette.border, lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func candidateField(_ placeholder: String, text: Binding<String>) -> some View {
+        HStack(spacing: 8) {
+            styledTextField(placeholder, text: text)
+            candidateMenu { selected in
+                text.wrappedValue = selected
+            }
+        }
+    }
+
+    private var candidateDateField: some View {
+        HStack(spacing: 8) {
+            DatePicker("观影时间", selection: $watchedAt)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 46)
+                .background(TicketPalette.paper)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(TicketPalette.border, lineWidth: 1)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            candidateMenu { selected in
+                if let date = parseCandidateDate(selected) {
+                    watchedAt = date
+                } else {
+                    message = "这条候选文本没有识别出明确日期，可以手动选择观影时间。"
+                }
+            }
+        }
+    }
+
+    private func candidateMenu(onSelect: @escaping (String) -> Void) -> some View {
+        Menu {
+            if recognizedLines.isEmpty {
+                Text("暂无 OCR 候选")
+            } else {
+                ForEach(recognizedLines, id: \.self) { line in
+                    Button(line) {
+                        onSelect(line)
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "list.bullet.rectangle")
+                .frame(width: 46, height: 46)
+                .foregroundStyle(TicketPalette.ink)
+                .background(TicketPalette.paper)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(TicketPalette.border, lineWidth: 1)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .disabled(recognizedLines.isEmpty)
+    }
+
     private func editorSection<Content: View>(_ title: String, systemImage: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(title, systemImage: systemImage)
@@ -238,7 +314,11 @@ struct TicketRecordEditorView: View {
         }
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.72))
+        .background(TicketPalette.surface)
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(TicketPalette.border, lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
@@ -264,6 +344,7 @@ struct TicketRecordEditorView: View {
             defer { isRecognizing = false }
 
             let text = try await ocrService.recognizeText(in: image)
+            recognizedLines = normalizedLines(from: text)
             let draft = parsingService.parse(text)
             if !draft.movieTitle.isEmpty { movieTitle = draft.movieTitle }
             watchedAt = draft.watchedAt
@@ -276,6 +357,47 @@ struct TicketRecordEditorView: View {
             isRecognizing = false
             message = error.localizedDescription
         }
+    }
+
+    private func normalizedLines(from text: String) -> [String] {
+        var seen = Set<String>()
+        return text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { line in
+                if seen.contains(line) { return false }
+                seen.insert(line)
+                return true
+            }
+    }
+
+    private func parseCandidateDate(_ text: String) -> Date? {
+        let normalized = text
+            .replacingOccurrences(of: "年", with: "-")
+            .replacingOccurrences(of: "月", with: "-")
+            .replacingOccurrences(of: "日", with: "")
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ".", with: "-")
+
+        let patterns = [
+            #"20\d{2}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2}"#,
+            #"20\d{2}-\d{1,2}-\d{1,2}"#
+        ]
+
+        for pattern in patterns {
+            guard let range = normalized.range(of: pattern, options: .regularExpression) else { continue }
+            let raw = String(normalized[range])
+            for format in ["yyyy-M-d H:mm", "yyyy-MM-dd H:mm", "yyyy-M-d", "yyyy-MM-dd"] {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "zh_CN")
+                formatter.dateFormat = format
+                if let date = formatter.date(from: raw) {
+                    return date
+                }
+            }
+        }
+        return nil
     }
 
     private func save() {
