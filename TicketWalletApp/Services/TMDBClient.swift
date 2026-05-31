@@ -65,13 +65,23 @@ struct TMDBCredits: Decodable {
 }
 
 struct TMDBClient {
-    private let baseURL = URL(string: "https://api.themoviedb.org/3")!
-    private let imageBaseURL = URL(string: "https://image.tmdb.org/t/p/w500")!
+    private let baseURL: URL
+    private let imageBaseURL: URL
     private let credential: String
+    private let usesProxy: Bool
     private let session: URLSession
 
-    init(apiKey: String = Bundle.main.object(forInfoDictionaryKey: "TMDB_API_KEY") as? String ?? "") {
+    init(
+        apiKey: String = Bundle.main.object(forInfoDictionaryKey: "TMDB_API_KEY") as? String ?? "",
+        apiBaseURL: String = Bundle.main.object(forInfoDictionaryKey: "TMDB_API_BASE_URL") as? String ?? "",
+        imageBaseURL: String = Bundle.main.object(forInfoDictionaryKey: "TMDB_IMAGE_BASE_URL") as? String ?? ""
+    ) {
         self.credential = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanAPIBaseURL = Self.cleanedConfiguredURL(apiBaseURL)
+        let cleanImageBaseURL = Self.cleanedConfiguredURL(imageBaseURL)
+        self.baseURL = URL(string: cleanAPIBaseURL) ?? URL(string: "https://api.themoviedb.org/3")!
+        self.imageBaseURL = URL(string: cleanImageBaseURL) ?? URL(string: "https://image.tmdb.org/t/p/w500")!
+        self.usesProxy = !cleanAPIBaseURL.isEmpty
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 8
         configuration.timeoutIntervalForResource = 12
@@ -79,7 +89,7 @@ struct TMDBClient {
     }
 
     var isConfigured: Bool {
-        !credential.isEmpty && credential != "$(TMDB_API_KEY)"
+        usesProxy || (!credential.isEmpty && credential != "$(TMDB_API_KEY)")
     }
 
     func searchMovies(query: String) async throws -> [TMDBMovieSearchResult] {
@@ -187,7 +197,7 @@ struct TMDBClient {
     }
 
     private func authorizedQueryItems(_ queryItems: [URLQueryItem]) -> [URLQueryItem] {
-        guard !usesBearerToken else {
+        guard !usesProxy, !usesBearerToken else {
             return queryItems
         }
         return [URLQueryItem(name: "api_key", value: credential)] + queryItems
@@ -199,7 +209,7 @@ struct TMDBClient {
 
     private func request<T: Decodable>(_ url: URL) async throws -> T {
         var request = URLRequest(url: url)
-        if usesBearerToken {
+        if !usesProxy, usesBearerToken {
             request.setValue("Bearer \(credential)", forHTTPHeaderField: "Authorization")
         }
 
@@ -208,7 +218,9 @@ struct TMDBClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw TMDBError.networkUnavailable
+            let nsError = error as NSError
+            print("TMDB network error: \(nsError.domain) \(nsError.code) \(nsError.localizedDescription)")
+            throw TMDBError.networkUnavailable(reason: nsError.localizedDescription)
         }
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -225,13 +237,21 @@ struct TMDBClient {
     private struct SearchResponse: Decodable {
         let results: [TMDBMovieSearchResult]
     }
+
+    private static func cleanedConfiguredURL(_ value: String) -> String {
+        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty, !clean.hasPrefix("$("), clean != "your_proxy_url_here" else {
+            return ""
+        }
+        return clean
+    }
 }
 
 enum TMDBError: LocalizedError {
     case missingAPIKey
     case requestFailed
     case invalidResponse
-    case networkUnavailable
+    case networkUnavailable(reason: String? = nil)
 
     var errorDescription: String? {
         switch self {
@@ -241,8 +261,12 @@ enum TMDBError: LocalizedError {
             "电影资料暂时获取失败，可以稍后再试或手动填写。"
         case .invalidResponse:
             "电影资料返回格式暂时无法识别，可以稍后再试或手动填写。"
-        case .networkUnavailable:
-            "无法连接 TMDB。请检查手机网络、VPN 或代理设置后再试。"
+        case .networkUnavailable(let reason):
+            if let reason, !reason.isEmpty {
+                "无法连接 TMDB：\(reason)"
+            } else {
+                "无法连接 TMDB。请检查手机网络、VPN 或代理设置后再试。"
+            }
         }
     }
 }

@@ -1,3 +1,9 @@
 // Copy this file to Local.xcconfig.
 // Never commit real API keys.
 TMDB_API_KEY = your_tmdb_api_key_here
+// Optional. Use a TMDB-compatible proxy base URL when phones cannot reach TMDB directly.
+// Example: https://your-worker.workers.dev/3
+TMDB_API_BASE_URL =
+// Optional. Use a poster proxy compatible with /t/p/w500 when image.tmdb.org is not reachable.
+// Example: https://your-worker.workers.dev/t/p/w500
+TMDB_IMAGE_BASE_URL =

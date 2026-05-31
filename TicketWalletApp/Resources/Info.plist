@@ -26,6 +26,10 @@
 	<string>用于选择已经拍好的电影票根照片。</string>
 	<key>TMDB_API_KEY</key>
 	<string>$(TMDB_API_KEY)</string>
+	<key>TMDB_API_BASE_URL</key>
+	<string>$(TMDB_API_BASE_URL)</string>
+	<key>TMDB_IMAGE_BASE_URL</key>
+	<string>$(TMDB_IMAGE_BASE_URL)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
