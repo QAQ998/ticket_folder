@@ -37,17 +37,17 @@ struct TicketRecordEditorView: View {
     private let ocrService = TicketOCRService()
     private let parsingService = TicketParsingService()
 
-    init(record: MovieRecord? = nil) {
+    init(record: MovieRecord? = nil, initialMetadata: TMDBMovieMetadata? = nil) {
         self.record = record
-        _movieTitle = State(initialValue: record?.movieTitle ?? "")
-        _originalTitle = State(initialValue: record?.originalTitle ?? "")
-        _year = State(initialValue: record?.year ?? "")
-        _director = State(initialValue: record?.director ?? "")
-        _tmdbId = State(initialValue: record?.tmdbId)
-        _metadataSource = State(initialValue: record?.metadataSource ?? "manual")
-        _metadataFetchedAt = State(initialValue: record?.metadataFetchedAt)
-        _posterLocalPath = State(initialValue: record?.posterLocalPath)
-        _posterCachedAt = State(initialValue: record?.posterCachedAt)
+        _movieTitle = State(initialValue: record?.movieTitle ?? initialMetadata?.details.title ?? "")
+        _originalTitle = State(initialValue: record?.originalTitle ?? initialMetadata?.details.originalTitle ?? "")
+        _year = State(initialValue: record?.year ?? initialMetadata?.details.year ?? "")
+        _director = State(initialValue: record?.director ?? initialMetadata?.director ?? "")
+        _tmdbId = State(initialValue: record?.tmdbId ?? initialMetadata?.details.id)
+        _metadataSource = State(initialValue: record?.metadataSource ?? (initialMetadata == nil ? "manual" : "tmdb"))
+        _metadataFetchedAt = State(initialValue: record?.metadataFetchedAt ?? (initialMetadata == nil ? nil : .now))
+        _posterLocalPath = State(initialValue: record?.posterLocalPath ?? initialMetadata?.posterLocalPath)
+        _posterCachedAt = State(initialValue: record?.posterCachedAt ?? (initialMetadata?.posterLocalPath == nil ? nil : .now))
         _watchedAt = State(initialValue: record?.watchedAt ?? .now)
         _cinema = State(initialValue: record?.cinema ?? "")
         _hall = State(initialValue: record?.hall ?? "")

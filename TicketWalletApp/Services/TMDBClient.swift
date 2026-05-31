@@ -68,9 +68,14 @@ struct TMDBClient {
     private let baseURL = URL(string: "https://api.themoviedb.org/3")!
     private let imageBaseURL = URL(string: "https://image.tmdb.org/t/p/w500")!
     private let credential: String
+    private let session: URLSession
 
     init(apiKey: String = Bundle.main.object(forInfoDictionaryKey: "TMDB_API_KEY") as? String ?? "") {
         self.credential = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 8
+        configuration.timeoutIntervalForResource = 12
+        self.session = URLSession(configuration: configuration)
     }
 
     var isConfigured: Bool {
@@ -201,7 +206,7 @@ struct TMDBClient {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch {
             throw TMDBError.networkUnavailable
         }

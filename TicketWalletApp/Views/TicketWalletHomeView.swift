@@ -4,19 +4,8 @@ import SwiftUI
 struct TicketWalletHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \MovieRecord.watchedAt, order: .reverse) private var records: [MovieRecord]
-    @State private var searchText = ""
     @State private var showingEditor = false
-    @FocusState private var isSearchFocused: Bool
-
-    private var filteredRecords: [MovieRecord] {
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return records
-        }
-        return records.filter {
-            $0.movieTitle.localizedCaseInsensitiveContains(searchText) ||
-            $0.cinema.localizedCaseInsensitiveContains(searchText)
-        }
-    }
+    @State private var showingSearch = false
 
     var body: some View {
         NavigationStack {
@@ -24,14 +13,13 @@ struct TicketWalletHomeView: View {
                 TicketBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        searchBar
                         header
 
-                        if filteredRecords.isEmpty {
+                        if records.isEmpty {
                             emptyState
                         } else {
                             LazyVStack(spacing: 14) {
-                                ForEach(filteredRecords) { record in
+                                ForEach(records) { record in
                                     NavigationLink(value: record) {
                                         TicketCard(record: record)
                                     }
@@ -44,11 +32,16 @@ struct TicketWalletHomeView: View {
                     .padding(.bottom, 10)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        isSearchFocused = false
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
                     }
-                )
+                    .accessibilityLabel("搜索")
+                }
             }
             .navigationDestination(for: MovieRecord.self) { record in
                 TicketRecordDetailView(record: record)
@@ -56,29 +49,9 @@ struct TicketWalletHomeView: View {
             .sheet(isPresented: $showingEditor) {
                 TicketRecordEditorView()
             }
-            .onAppear {
-                isSearchFocused = false
+            .sheet(isPresented: $showingSearch) {
+                TicketSearchView()
             }
-        }
-    }
-
-    private var searchBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(TicketPalette.muted)
-            TextField("搜索电影或影院", text: $searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .focused($isSearchFocused)
-        }
-        .font(.body)
-        .padding(.horizontal, 14)
-        .frame(height: 46)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
         }
     }
 
