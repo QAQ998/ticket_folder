@@ -79,8 +79,20 @@ struct TMDBClient {
 
     func searchMovies(query: String) async throws -> [TMDBMovieSearchResult] {
         guard isConfigured else { throw TMDBError.missingAPIKey }
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
+        let queries = searchQueries(for: query)
+        guard !queries.isEmpty else { return [] }
 
+        for candidate in queries {
+            let results = try await searchMoviesOnce(query: candidate)
+            if !results.isEmpty {
+                return results
+            }
+        }
+
+        return []
+    }
+
+    private func searchMoviesOnce(query: String) async throws -> [TMDBMovieSearchResult] {
         var components = URLComponents(url: baseURL.appending(path: "search/movie"), resolvingAgainstBaseURL: false)!
         components.queryItems = authorizedQueryItems([
             URLQueryItem(name: "query", value: query),
@@ -91,6 +103,47 @@ struct TMDBClient {
 
         let response: SearchResponse = try await request(components.url!)
         return response.results.filter { !$0.title.isEmpty }
+    }
+
+    private func searchQueries(for query: String) -> [String] {
+        let raw = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = normalizedMovieQuery(raw)
+        var seen = Set<String>()
+
+        return [raw, normalized]
+            .filter { !$0.isEmpty }
+            .filter { candidate in
+                if seen.contains(candidate) { return false }
+                seen.insert(candidate)
+                return true
+            }
+    }
+
+    private func normalizedMovieQuery(_ query: String) -> String {
+        var text = query
+
+        let patterns = [
+            #"[（(][^）)]*(2D|3D|4D|IMAX|CINITY|中国巨幕|杜比|国语|原版|数字|中文|字幕)[^）)]*[）)]"#,
+            #"中文\s*[234]D"#,
+            #"数字\s*[234]D"#,
+            #"IMAX|CINITY|Cinity|中国巨幕|杜比全景声|杜比|全景声|国语|原版|中字|中文字幕|中文|英语|日语|韩语"#,
+            #"[234]D"#
+        ]
+
+        for pattern in patterns {
+            text = text.replacingOccurrences(of: pattern, with: " ", options: .regularExpression)
+        }
+
+        text = text
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let separators = CharacterSet(charactersIn: "｜|/／,，;；")
+        if let first = text.components(separatedBy: separators).first {
+            text = first.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return text
     }
 
     func metadata(for id: Int) async throws -> TMDBMovieMetadata {
@@ -145,7 +198,14 @@ struct TMDBClient {
             request.setValue("Bearer \(credential)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw TMDBError.networkUnavailable
+        }
+
         guard let httpResponse = response as? HTTPURLResponse,
               (200..<300).contains(httpResponse.statusCode) else {
             throw TMDBError.requestFailed
@@ -166,6 +226,7 @@ enum TMDBError: LocalizedError {
     case missingAPIKey
     case requestFailed
     case invalidResponse
+    case networkUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -175,6 +236,8 @@ enum TMDBError: LocalizedError {
             "电影资料暂时获取失败，可以稍后再试或手动填写。"
         case .invalidResponse:
             "电影资料返回格式暂时无法识别，可以稍后再试或手动填写。"
+        case .networkUnavailable:
+            "无法连接 TMDB。请检查手机网络、VPN 或代理设置后再试。"
         }
     }
 }
