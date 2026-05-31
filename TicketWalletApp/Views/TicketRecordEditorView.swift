@@ -152,6 +152,10 @@ struct TicketRecordEditorView: View {
 
                             candidateField("年份", text: $year)
                             candidateField("导演", text: $director)
+
+                            if metadataSource == "tmdb" {
+                                TMDBAttributionView()
+                            }
                         }
 
                         editorSection("私人记录", systemImage: "square.and.pencil") {
@@ -201,15 +205,16 @@ struct TicketRecordEditorView: View {
                 }
             }
             .sheet(isPresented: $showingMovieSearch) {
-                MovieSearchView(initialQuery: movieTitle) { _, details, foundDirector, cachedPoster in
+                MovieSearchView(initialQuery: movieTitle) { _, metadata in
+                    let details = metadata.details
                     movieTitle = details.title
                     originalTitle = details.originalTitle ?? ""
                     year = details.year
-                    director = foundDirector
+                    director = metadata.director
                     tmdbId = details.id
                     metadataSource = "tmdb"
                     metadataFetchedAt = .now
-                    if let cachedPoster {
+                    if let cachedPoster = metadata.posterLocalPath {
                         PosterCacheStore.delete(posterLocalPath)
                         posterLocalPath = cachedPoster
                         posterCachedAt = .now

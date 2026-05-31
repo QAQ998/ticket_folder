@@ -31,6 +31,11 @@ struct TicketRecordDetailView: View {
                         infoRow("座位", record.seat)
                         infoRow("票价", record.ticketPrice)
                     }
+                    if record.metadataSource == "tmdb" {
+                        TicketSectionCard(title: "电影资料来源", systemImage: "film") {
+                            TMDBAttributionView()
+                        }
+                    }
                     TicketSectionCard(title: "私人记录", systemImage: "pencil.and.outline") {
                         RatingDots(rating: record.rating)
                         if !record.note.isEmpty {

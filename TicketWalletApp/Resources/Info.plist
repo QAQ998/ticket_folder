@@ -25,7 +25,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择已经拍好的电影票根照片。</string>
 	<key>TMDB_API_KEY</key>
-	<string></string>
+	<string>$(TMDB_API_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

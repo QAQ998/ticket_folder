@@ -53,6 +53,8 @@ private struct CalendarPlaceholderView: View {
 }
 
 private struct SettingsPlaceholderView: View {
+    private let tmdbClient = TMDBClient()
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -75,7 +77,8 @@ private struct SettingsPlaceholderView: View {
 
                     TicketSectionCard(title: "电影资料", systemImage: "film") {
                         SettingsRow(title: "资料来源", value: "TMDB")
-                        SettingsRow(title: "API Key", value: "未配置")
+                        SettingsRow(title: "API Key", value: tmdbClient.isConfigured ? "已配置" : "未配置")
+                        TMDBAttributionView()
                     }
                 }
                 .padding(24)

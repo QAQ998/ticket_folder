@@ -24,9 +24,15 @@
 
 ## 配置
 
-`Info.plist` 中的 `TMDB_API_KEY` 默认留空。填入 TMDB API Key 后，电影搜索、资料补全和海报缓存能力会启用；未配置时，App 仍可完成本地票根录入和手动电影资料维护。
+电影资料来自 TMDB。电影搜索、资料补全和海报缓存需要本机配置 TMDB API Key；未配置时，App 仍可完成本地票根录入和手动电影资料维护。
 
-正式发布前建议改为通过本地构建配置或后端代理注入 API Key，避免将真实密钥提交到仓库。
+本地配置方式：
+
+1. 复制 `Local.xcconfig.example` 为 `Local.xcconfig`
+2. 在 `Local.xcconfig` 中填入 `TMDB_API_KEY`
+3. 重新运行 Xcode
+
+`Local.xcconfig` 已加入忽略列表，不要将真实密钥提交到仓库。正式发布前建议改为通过后端代理注入 API Key。
 
 ## 技术栈
 
