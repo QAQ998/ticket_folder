@@ -33,16 +33,6 @@ struct TicketWalletHomeView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingSearch = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .accessibilityLabel("搜索")
-                }
-            }
             .navigationDestination(for: MovieRecord.self) { record in
                 TicketRecordDetailView(record: record)
             }
@@ -56,8 +46,26 @@ struct TicketWalletHomeView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            AppPageHeader("散场记", subtitle: "开场前也可以记，散场后慢慢收好。")
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 14) {
+                AppPageHeader("散场记", subtitle: "开场前也可以记，散场后慢慢收好。")
+
+                Button {
+                    showingSearch = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(TicketPalette.ink)
+                        .frame(width: 44, height: 44)
+                        .background(TicketPalette.surface)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(TicketPalette.border, lineWidth: 1)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .accessibilityLabel("搜索")
+            }
 
             Button {
                 showingEditor = true
@@ -67,7 +75,6 @@ struct TicketWalletHomeView: View {
             .buttonStyle(PrimaryActionButtonStyle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 8)
     }
 
     private var emptyState: some View {

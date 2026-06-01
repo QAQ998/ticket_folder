@@ -39,11 +39,13 @@ struct TicketRecordEditorView: View {
     @State private var note: String
 
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var showingCamera = false
+    @State private var showingTicketPreview = false
     @State private var showingMovieSearch = false
     @State private var isRecognizing = false
     @State private var message = ""
     @State private var recognizedLines: [String] = []
+    @State private var pendingDeletedTicketImagePaths: [String] = []
+    @State private var newlyImportedTicketImagePaths: [String] = []
     @FocusState private var focusedField: EditorField?
 
     private let ocrService = TicketOCRService()
@@ -79,23 +81,29 @@ struct TicketRecordEditorView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         editorSection("票根图片", systemImage: "ticket") {
                             if let first = ticketImagePaths.first {
-                                TicketPhotoView(filename: first)
-                                    .frame(height: 190)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                Button {
+                                    showingTicketPreview = true
+                                } label: {
+                                    TicketPhotoView(filename: first)
+                                        .frame(height: 190)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(alignment: .bottomTrailing) {
+                                            Label("查看全图", systemImage: "arrow.up.left.and.arrow.down.right")
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 7)
+                                                .background(.black.opacity(0.62))
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                .padding(10)
+                                        }
+                                }
+                                .buttonStyle(.plain)
                             } else {
                                 emptyTicketPreview
-                            }
 
-                            HStack(spacing: 10) {
                                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                                    Label("相册", systemImage: "photo")
-                                }
-                                .buttonStyle(SecondaryActionButtonStyle())
-
-                                Button {
-                                    showingCamera = true
-                                } label: {
-                                    Label("拍摄", systemImage: "camera")
+                                    Label("从相册选择", systemImage: "photo")
                                 }
                                 .buttonStyle(SecondaryActionButtonStyle())
                             }
@@ -187,7 +195,7 @@ struct TicketRecordEditorView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
-                        dismiss()
+                        cancelEditing()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -202,11 +210,13 @@ struct TicketRecordEditorView: View {
                     await importPhoto(item)
                 }
             }
-            .sheet(isPresented: $showingCamera) {
-                ImagePicker(sourceType: .camera) { image in
-                    Task {
-                        await saveAndRecognize(image)
-                    }
+            .fullScreenCover(isPresented: $showingTicketPreview) {
+                if let first = ticketImagePaths.first {
+                    TicketImagePreviewView(
+                        filename: first,
+                        selectedPhotoItem: $selectedPhotoItem,
+                        onDelete: deleteCurrentTicketImage
+                    )
                 }
             }
             .sheet(isPresented: $showingMovieSearch) {
@@ -357,6 +367,7 @@ struct TicketRecordEditorView: View {
 
     private func importPhoto(_ item: PhotosPickerItem?) async {
         guard let item else { return }
+        defer { selectedPhotoItem = nil }
         do {
             guard let data = try await item.loadTransferable(type: Data.self),
                   let image = UIImage(data: data) else {
@@ -372,7 +383,11 @@ struct TicketRecordEditorView: View {
     private func saveAndRecognize(_ image: UIImage) async {
         do {
             let filename = try TicketImageStore.save(image)
+            let previousPaths = ticketImagePaths
             ticketImagePaths = [filename]
+            newlyImportedTicketImagePaths.append(filename)
+            pendingDeletedTicketImagePaths.append(contentsOf: previousPaths)
+            showingTicketPreview = false
             isRecognizing = true
             defer { isRecognizing = false }
 
@@ -390,6 +405,13 @@ struct TicketRecordEditorView: View {
             isRecognizing = false
             message = error.localizedDescription
         }
+    }
+
+    private func deleteCurrentTicketImage() {
+        pendingDeletedTicketImagePaths.append(contentsOf: ticketImagePaths)
+        ticketImagePaths.removeAll()
+        showingTicketPreview = false
+        message = "已移除票根图片，保存后会从本机删除。"
     }
 
     private func normalizedLines(from text: String) -> [String] {
@@ -458,6 +480,85 @@ struct TicketRecordEditorView: View {
             modelContext.insert(target)
         }
         try? modelContext.save()
+        cleanupImagesAfterSave(keeping: Set(ticketImagePaths))
         dismiss()
+    }
+
+    private func cancelEditing() {
+        for filename in Set(newlyImportedTicketImagePaths) {
+            TicketImageStore.delete(filename)
+        }
+        dismiss()
+    }
+
+    private func cleanupImagesAfterSave(keeping keptFilenames: Set<String>) {
+        let removable = Set(pendingDeletedTicketImagePaths + newlyImportedTicketImagePaths)
+            .subtracting(keptFilenames)
+        for filename in removable {
+            TicketImageStore.delete(filename)
+        }
+    }
+}
+
+private struct TicketImagePreviewView: View {
+    let filename: String
+    @Binding var selectedPhotoItem: PhotosPickerItem?
+    let onDelete: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingDeleteAlert = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                TicketPalette.dark.ignoresSafeArea()
+
+                fullTicketImage
+                    .padding(16)
+            }
+            .navigationTitle("票根图片")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                }
+                ToolbarItemGroup(placement: .bottomBar) {
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                        Label("更换照片", systemImage: "photo")
+                    }
+                    Spacer()
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                }
+            }
+            .alert("删除这张票根图片？", isPresented: $showingDeleteAlert) {
+                Button("删除", role: .destructive) {
+                    onDelete()
+                    dismiss()
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("删除后这张图片将不再保存在当前票根记录里。")
+            }
+        }
+    }
+
+    private var fullTicketImage: some View {
+        Group {
+            if let image = TicketImageStore.image(named: filename) ?? BundleImageStore.image(named: filename) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                TicketPhotoView(filename: filename)
+                    .aspectRatio(contentMode: .fit)
+            }
+        }
     }
 }
