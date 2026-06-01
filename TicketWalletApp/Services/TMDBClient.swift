@@ -83,8 +83,11 @@ struct TMDBClient {
         self.imageBaseURL = URL(string: cleanImageBaseURL) ?? URL(string: "https://image.tmdb.org/t/p/w500")!
         self.usesProxy = !cleanAPIBaseURL.isEmpty
         let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = 8
-        configuration.timeoutIntervalForResource = 12
+        configuration.timeoutIntervalForRequest = 20
+        configuration.timeoutIntervalForResource = 30
+        configuration.waitsForConnectivity = true
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.urlCache = nil
         self.session = URLSession(configuration: configuration)
     }
 
@@ -219,8 +222,9 @@ struct TMDBClient {
             (data, response) = try await session.data(for: request)
         } catch {
             let nsError = error as NSError
-            print("TMDB network error: \(nsError.domain) \(nsError.code) \(nsError.localizedDescription)")
-            throw TMDBError.networkUnavailable(reason: nsError.localizedDescription)
+            let host = request.url?.host() ?? "unknown"
+            print("TMDB network error: \(host) \(nsError.domain) \(nsError.code) \(nsError.localizedDescription)")
+            throw TMDBError.networkUnavailable(reason: "\(nsError.localizedDescription)（\(host)，\(nsError.code)）")
         }
 
         guard let httpResponse = response as? HTTPURLResponse,

@@ -78,20 +78,22 @@ class TMDBProxyHandler(BaseHTTPRequestHandler):
             raise RuntimeError(str(error.reason))
 
         self.send_response(status)
-        self.send_common_headers(content_type)
+        self.send_common_headers(content_type, len(body))
         self.end_headers()
         self.wfile.write(body)
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
-        self.send_common_headers("application/json; charset=utf-8")
+        self.send_common_headers("application/json; charset=utf-8", len(body))
         self.end_headers()
         self.wfile.write(body)
 
-    def send_common_headers(self, content_type):
+    def send_common_headers(self, content_type, content_length=0):
         self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(content_length))
         self.send_header("Cache-Control", "public, max-age=86400")
+        self.send_header("Connection", "close")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
