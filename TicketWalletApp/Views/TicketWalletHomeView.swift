@@ -28,7 +28,7 @@ struct TicketWalletHomeView: View {
                             }
                         }
                     }
-                    .padding(18)
+                    .padding(24)
                     .padding(.bottom, 10)
                 }
                 .scrollDismissesKeyboard(.interactively)
@@ -57,14 +57,7 @@ struct TicketWalletHomeView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("散场记")
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundStyle(TicketPalette.ink)
-                Text("开场前也可以记，散场后慢慢收好。")
-                    .font(.subheadline)
-                    .foregroundStyle(TicketPalette.muted)
-            }
+            AppPageHeader("散场记", subtitle: "开场前也可以记，散场后慢慢收好。")
 
             Button {
                 showingEditor = true

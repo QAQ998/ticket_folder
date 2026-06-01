@@ -2,6 +2,17 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
+private enum EditorField: Hashable {
+    case movieTitle
+    case cinema
+    case hall
+    case seat
+    case ticketPrice
+    case year
+    case director
+    case note
+}
+
 struct TicketRecordEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -33,6 +44,7 @@ struct TicketRecordEditorView: View {
     @State private var isRecognizing = false
     @State private var message = ""
     @State private var recognizedLines: [String] = []
+    @FocusState private var focusedField: EditorField?
 
     private let ocrService = TicketOCRService()
     private let parsingService = TicketParsingService()
@@ -95,12 +107,12 @@ struct TicketRecordEditorView: View {
                         }
 
                         editorSection("票面信息", systemImage: "text.viewfinder") {
-                            candidateField("电影名", text: $movieTitle)
+                            candidateField("电影名", text: $movieTitle, field: .movieTitle)
                             candidateDateField
-                            candidateField("影院", text: $cinema)
-                            candidateField("影厅", text: $hall)
-                            candidateField("座位", text: $seat)
-                            candidateField("票价", text: $ticketPrice)
+                            candidateField("影院", text: $cinema, field: .cinema)
+                            candidateField("影厅", text: $hall, field: .hall)
+                            candidateField("座位", text: $seat, field: .seat)
+                            candidateField("票价", text: $ticketPrice, field: .ticketPrice)
                         }
 
                         if !recognizedLines.isEmpty {
@@ -137,30 +149,23 @@ struct TicketRecordEditorView: View {
                                     Text([year, director].filter { !$0.isEmpty }.joined(separator: " · "))
                                         .font(.caption)
                                         .foregroundStyle(TicketPalette.muted)
-                                    if metadataSource == "tmdb" {
-                                        TicketPill(text: "海报已缓存")
-                                    }
                                 }
                             }
 
                             Button {
                                 showingMovieSearch = true
                             } label: {
-                                Label("从 TMDB 补全资料", systemImage: "magnifyingglass")
+                                Label("匹配电影资料", systemImage: "magnifyingglass")
                             }
                             .buttonStyle(SecondaryActionButtonStyle())
 
-                            candidateField("年份", text: $year)
-                            candidateField("导演", text: $director)
-
-                            if metadataSource == "tmdb" {
-                                TMDBAttributionView()
-                            }
+                            candidateField("年份", text: $year, field: .year)
+                            candidateField("导演", text: $director, field: .director)
                         }
 
                         editorSection("私人记录", systemImage: "square.and.pencil") {
                             RatingPicker(rating: $rating)
-                            styledTextField("短评，可留空", text: $note, axis: .vertical)
+                            labeledTextField("短评", placeholder: "可以留空", text: $note, field: .note, axis: .vertical)
                                 .lineLimit(3...8)
                         }
 
@@ -242,47 +247,70 @@ struct TicketRecordEditorView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    private func styledTextField(_ placeholder: String, text: Binding<String>, axis: Axis = .horizontal) -> some View {
-        TextField(placeholder, text: text, axis: axis)
+    private func styledTextField(_ placeholder: String, text: Binding<String>, field: EditorField, axis: Axis = .horizontal) -> some View {
+        let isActive = focusedField == field
+        return TextField(placeholder, text: text, axis: axis)
             .padding(.horizontal, 12)
             .frame(minHeight: 46)
-            .background(TicketPalette.paper)
+            .background(isActive ? TicketPalette.surface : TicketPalette.paper)
             .overlay {
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(TicketPalette.border, lineWidth: 1)
+                    .stroke(isActive ? TicketPalette.accent : TicketPalette.border, lineWidth: isActive ? 1.5 : 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            .focused($focusedField, equals: field)
     }
 
-    private func candidateField(_ placeholder: String, text: Binding<String>) -> some View {
-        HStack(spacing: 8) {
-            styledTextField(placeholder, text: text)
-            candidateMenu { selected in
-                text.wrappedValue = selected
+    private func labeledTextField(_ label: String, placeholder: String, text: Binding<String>, field: EditorField, axis: Axis = .horizontal) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            fieldLabel(label)
+            styledTextField(placeholder, text: text, field: field, axis: axis)
+        }
+    }
+
+    private func candidateField(_ label: String, text: Binding<String>, field: EditorField) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            fieldLabel(label)
+            HStack(spacing: 8) {
+                styledTextField("请输入\(label)", text: text, field: field)
+                candidateMenu { selected in
+                    text.wrappedValue = selected
+                }
             }
         }
     }
 
     private var candidateDateField: some View {
-        HStack(spacing: 8) {
-            DatePicker("观影时间", selection: $watchedAt)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 46)
-                .background(TicketPalette.paper)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(TicketPalette.border, lineWidth: 1)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+        VStack(alignment: .leading, spacing: 7) {
+            fieldLabel("观影时间")
+            HStack(spacing: 8) {
+                DatePicker("观影时间", selection: $watchedAt)
+                    .labelsHidden()
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 46)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(TicketPalette.paper)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(TicketPalette.border, lineWidth: 1)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            candidateMenu { selected in
-                if let date = parseCandidateDate(selected) {
-                    watchedAt = date
-                } else {
-                    message = "这条候选文本没有识别出明确日期，可以手动选择观影时间。"
+                candidateMenu { selected in
+                    if let date = parseCandidateDate(selected) {
+                        watchedAt = date
+                    } else {
+                        message = "这条候选文本没有识别出明确日期，可以手动选择观影时间。"
+                    }
                 }
             }
         }
+    }
+
+    private func fieldLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(TicketPalette.muted)
     }
 
     private func candidateMenu(onSelect: @escaping (String) -> Void) -> some View {

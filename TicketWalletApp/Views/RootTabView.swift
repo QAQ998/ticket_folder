@@ -27,11 +27,7 @@ private struct CalendarPlaceholderView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                Text("日历")
-                    .font(.system(size: 34, weight: .semibold))
-                Text("按月份回看每一次走进影院的时间。")
-                    .font(.body)
-                    .foregroundStyle(TicketPalette.muted)
+                    AppPageHeader("日历", subtitle: "按月份回看每一次走进影院的时间。")
 
                     VStack(spacing: 12) {
                         CalendarSummaryCard(title: "本月观影", value: "0", detail: "还没有记录")
@@ -59,11 +55,7 @@ private struct SettingsPlaceholderView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                Text("设置")
-                    .font(.system(size: 34, weight: .semibold))
-                Text("管理备份、隐私和电影资料来源。")
-                    .font(.body)
-                    .foregroundStyle(TicketPalette.muted)
+                    AppPageHeader("设置", subtitle: "管理备份、隐私和电影资料来源。")
 
                     TicketSectionCard(title: "数据与备份", systemImage: "icloud") {
                         SettingsRow(title: "iCloud 备份", value: "规划中")

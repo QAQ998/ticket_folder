@@ -22,6 +22,30 @@ struct TicketBackground: View {
     }
 }
 
+struct AppPageHeader: View {
+    let title: String
+    let subtitle: String?
+
+    init(_ title: String, subtitle: String? = nil) {
+        self.title = title
+        self.subtitle = subtitle
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(TicketPalette.ink)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.body)
+                    .foregroundStyle(TicketPalette.muted)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct TicketDashedDivider: View {
     var color: Color = TicketPalette.muted.opacity(0.35)
 
