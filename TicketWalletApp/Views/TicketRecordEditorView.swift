@@ -40,8 +40,8 @@ struct TicketRecordEditorView: View {
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showingTicketPreview = false
-    @State private var showingMovieSearch = false
     @State private var isRecognizing = false
+    @State private var isFetchingMovieMetadata = false
     @State private var message = ""
     @State private var recognizedLines: [String] = []
     @State private var pendingDeletedTicketImagePaths: [String] = []
@@ -50,6 +50,7 @@ struct TicketRecordEditorView: View {
 
     private let ocrService = TicketOCRService()
     private let parsingService = TicketParsingService()
+    private let tmdbClient = TMDBClient()
 
     init(record: MovieRecord? = nil, initialMetadata: TMDBMovieMetadata? = nil) {
         self.record = record
@@ -88,7 +89,7 @@ struct TicketRecordEditorView: View {
                                         .frame(height: 190)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(alignment: .bottomTrailing) {
-                                            Label("查看全图", systemImage: "arrow.up.left.and.arrow.down.right")
+                                            Label("点按预览", systemImage: "arrow.up.left.and.arrow.down.right")
                                                 .font(.caption.weight(.semibold))
                                                 .foregroundStyle(.white)
                                                 .padding(.horizontal, 10)
@@ -100,12 +101,10 @@ struct TicketRecordEditorView: View {
                                 }
                                 .buttonStyle(.plain)
                             } else {
-                                emptyTicketPreview
-
                                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                                    Label("从相册选择", systemImage: "photo")
+                                    emptyTicketPreview
                                 }
-                                .buttonStyle(SecondaryActionButtonStyle())
+                                .buttonStyle(.plain)
                             }
 
                             if isRecognizing {
@@ -114,61 +113,14 @@ struct TicketRecordEditorView: View {
                             }
                         }
 
-                        editorSection("票面信息", systemImage: "text.viewfinder") {
+                        editorSection("影片信息", systemImage: "film") {
+                            movieMetadataPanel
                             candidateField("电影名", text: $movieTitle, field: .movieTitle)
                             candidateDateField
                             candidateField("影院", text: $cinema, field: .cinema)
                             candidateField("影厅", text: $hall, field: .hall)
                             candidateField("座位", text: $seat, field: .seat)
                             candidateField("票价", text: $ticketPrice, field: .ticketPrice)
-                        }
-
-                        if !recognizedLines.isEmpty {
-                            editorSection("OCR 候选文本", systemImage: "text.magnifyingglass") {
-                                Text("识别结果可能有误。你可以在每个字段右侧选择候选文本，也可以直接手动输入。")
-                                    .font(.footnote)
-                                    .foregroundStyle(TicketPalette.muted)
-
-                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
-                                    ForEach(recognizedLines, id: \.self) { line in
-                                        Text(line)
-                                            .font(.caption)
-                                            .lineLimit(2)
-                                            .foregroundStyle(TicketPalette.ink)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 8)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .background(TicketPalette.paper)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    }
-                                }
-                            }
-                        }
-
-                        editorSection("电影资料", systemImage: "film") {
-                            HStack(spacing: 12) {
-                                PosterView(filename: posterLocalPath)
-                                    .frame(width: 64, height: 94)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(movieTitle.isEmpty ? "先填写或识别电影名" : movieTitle)
-                                        .font(.headline)
-                                        .foregroundStyle(TicketPalette.ink)
-                                    Text([year, director].filter { !$0.isEmpty }.joined(separator: " · "))
-                                        .font(.caption)
-                                        .foregroundStyle(TicketPalette.muted)
-                                }
-                            }
-
-                            Button {
-                                showingMovieSearch = true
-                            } label: {
-                                Label("匹配电影资料", systemImage: "magnifyingglass")
-                            }
-                            .buttonStyle(SecondaryActionButtonStyle())
-
-                            candidateField("年份", text: $year, field: .year)
-                            candidateField("导演", text: $director, field: .director)
                         }
 
                         editorSection("私人记录", systemImage: "square.and.pencil") {
@@ -219,47 +171,88 @@ struct TicketRecordEditorView: View {
                     )
                 }
             }
-            .sheet(isPresented: $showingMovieSearch) {
-                MovieSearchView(initialQuery: movieTitle) { _, metadata in
-                    let details = metadata.details
-                    movieTitle = details.title
-                    originalTitle = details.originalTitle ?? ""
-                    year = details.year
-                    director = metadata.director
-                    tmdbId = details.id
-                    metadataSource = "tmdb"
-                    metadataFetchedAt = .now
-                    if let cachedPoster = metadata.posterLocalPath {
-                        PosterCacheStore.delete(posterLocalPath)
-                        posterLocalPath = cachedPoster
-                        posterCachedAt = .now
-                    }
-                }
-            }
         }
     }
 
     private var emptyTicketPreview: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "ticket")
-                .font(.system(size: 42))
+        VStack(spacing: 12) {
+            Image(systemName: "doc.viewfinder")
+                .font(.system(size: 44, weight: .medium))
                 .foregroundStyle(TicketPalette.accent)
-            Text("添加一张纸质票根或电子票截图")
+            Text("添加您的纸质票根或电子票根")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(TicketPalette.ink)
-            Text("识别后可以手动校对信息")
+            Text("清晰且完整的票根能更好的智能识别影片信息")
                 .font(.caption)
                 .foregroundStyle(TicketPalette.muted)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 160)
+        .frame(height: 176)
         .background(TicketPalette.paperDeep.opacity(0.45))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(TicketPalette.border, lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var movieMetadataPanel: some View {
+        HStack(spacing: 12) {
+            PosterView(filename: posterLocalPath)
+                .frame(width: 64, height: 94)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(movieTitle.isEmpty ? "识别电影名后获取资料" : movieTitle)
+                    .font(.headline)
+                    .foregroundStyle(TicketPalette.ink)
+                    .lineLimit(2)
+                Text(metadataSummary)
+                    .font(.caption)
+                    .foregroundStyle(TicketPalette.muted)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+
+            Button {
+                Task {
+                    await fetchMovieMetadata()
+                }
+            } label: {
+                if isFetchingMovieMetadata {
+                    ProgressView()
+                        .frame(width: 46, height: 34)
+                } else {
+                    Text(metadataSource == "tmdb" ? "更新" : "获取")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(width: 46, height: 34)
+                }
+            }
+            .foregroundStyle(TicketPalette.ink)
+            .background(TicketPalette.paper)
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(TicketPalette.border, lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .disabled(movieTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isFetchingMovieMetadata)
+        }
+        .padding(12)
+        .background(TicketPalette.paper.opacity(0.75))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var metadataSummary: String {
+        let parts = [year, director].filter { !$0.isEmpty }
+        return parts.isEmpty ? "海报、年份、导演可从 TMDB 获取" : parts.joined(separator: " · ")
     }
 
     private func styledTextField(_ placeholder: String, text: Binding<String>, field: EditorField, axis: Axis = .horizontal) -> some View {
         let isActive = focusedField == field
         return TextField(placeholder, text: text, axis: axis)
+            .foregroundStyle(TicketPalette.ink)
             .padding(.horizontal, 12)
             .frame(minHeight: 46)
             .background(isActive ? TicketPalette.surface : TicketPalette.paper)
@@ -284,7 +277,7 @@ struct TicketRecordEditorView: View {
             HStack(spacing: 8) {
                 styledTextField("请输入\(label)", text: text, field: field)
                 candidateMenu { selected in
-                    text.wrappedValue = selected
+                    text.wrappedValue = field == .movieTitle ? cleanedMovieTitle(selected) : selected
                 }
             }
         }
@@ -296,10 +289,13 @@ struct TicketRecordEditorView: View {
             HStack(spacing: 8) {
                 DatePicker("观影时间", selection: $watchedAt)
                     .labelsHidden()
+                    .tint(TicketPalette.ink)
+                    .foregroundStyle(TicketPalette.ink)
+                    .environment(\.colorScheme, .light)
                     .padding(.horizontal, 12)
                     .frame(minHeight: 46)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(TicketPalette.paper)
+                    .background(TicketPalette.surface)
                     .overlay {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(TicketPalette.border, lineWidth: 1)
@@ -335,7 +331,8 @@ struct TicketRecordEditorView: View {
                 }
             }
         } label: {
-            Image(systemName: "list.bullet.rectangle")
+            Image(systemName: "chevron.down")
+                .font(.subheadline.weight(.semibold))
                 .frame(width: 46, height: 46)
                 .foregroundStyle(TicketPalette.ink)
                 .background(TicketPalette.paper)
@@ -400,10 +397,63 @@ struct TicketRecordEditorView: View {
             if !draft.hall.isEmpty { hall = draft.hall }
             if !draft.seat.isEmpty { seat = draft.seat }
             if !draft.ticketPrice.isEmpty { ticketPrice = draft.ticketPrice }
-            message = draft.isEmpty ? "没有识别出明确字段，可以手动填写。" : "已识别票面文字，请确认并修正。"
+            message = draft.isEmpty ? "没有识别出明确字段，可以点字段进行修正。" : "已识别票面信息，请快速确认。"
+            isRecognizing = false
+            if !movieTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               metadataSource != "tmdb" {
+                await fetchMovieMetadata(quiet: true)
+            }
         } catch {
             isRecognizing = false
             message = error.localizedDescription
+        }
+    }
+
+    private func fetchMovieMetadata(quiet: Bool = false) async {
+        let query = cleanedMovieTitle(movieTitle)
+        guard !query.isEmpty else { return }
+        guard tmdbClient.isConfigured else {
+            if !quiet {
+                message = TMDBError.missingAPIKey.localizedDescription
+            }
+            return
+        }
+
+        isFetchingMovieMetadata = true
+        defer { isFetchingMovieMetadata = false }
+
+        do {
+            guard let first = try await tmdbClient.searchMovies(query: query).first else {
+                if !quiet {
+                    message = "没有找到匹配的电影资料，可以稍后再试。"
+                }
+                return
+            }
+            let metadata = try await tmdbClient.metadata(for: first.id)
+            applyMovieMetadata(metadata)
+            if !quiet {
+                message = "已获取电影资料。"
+            }
+        } catch {
+            if !quiet {
+                message = error.localizedDescription
+            }
+        }
+    }
+
+    private func applyMovieMetadata(_ metadata: TMDBMovieMetadata) {
+        let details = metadata.details
+        movieTitle = details.title
+        originalTitle = details.originalTitle ?? ""
+        year = details.year
+        director = metadata.director
+        tmdbId = details.id
+        metadataSource = "tmdb"
+        metadataFetchedAt = .now
+        if let cachedPoster = metadata.posterLocalPath {
+            PosterCacheStore.delete(posterLocalPath)
+            posterLocalPath = cachedPoster
+            posterCachedAt = .now
         }
     }
 
@@ -457,7 +507,7 @@ struct TicketRecordEditorView: View {
 
     private func save() {
         let target = record ?? MovieRecord()
-        target.movieTitle = movieTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        target.movieTitle = cleanedMovieTitle(movieTitle)
         target.originalTitle = originalTitle
         target.year = year
         target.director = director
@@ -482,6 +532,21 @@ struct TicketRecordEditorView: View {
         try? modelContext.save()
         cleanupImagesAfterSave(keeping: Set(ticketImagePaths))
         dismiss()
+    }
+
+    private func cleanedMovieTitle(_ title: String) -> String {
+        var text = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let patterns = [
+            #"\s*[（(][^）)]*(英文|英语|中文|国语|原版|中字|字幕|2D|3D|4D|IMAX|CINITY|中国巨幕|杜比|激光)[^）)]*[）)]\s*$"#,
+            #"\s*(中文|国语|原版|英语|英文)?\s*[234]D\s*$"#,
+            #"\s*(IMAX|CINITY|中国巨幕|杜比全景声|杜比|激光|原版|国语|中字|中文字幕)\s*$"#
+        ]
+
+        for pattern in patterns {
+            text = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func cancelEditing() {
@@ -515,6 +580,15 @@ private struct TicketImagePreviewView: View {
 
                 fullTicketImage
                     .padding(16)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        dismiss()
+                    }
+
+                VStack {
+                    Spacer()
+                    previewActions
+                }
             }
             .navigationTitle("票根图片")
             .navigationBarTitleDisplayMode(.inline)
@@ -523,17 +597,6 @@ private struct TicketImagePreviewView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("关闭") {
                         dismiss()
-                    }
-                }
-                ToolbarItemGroup(placement: .bottomBar) {
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label("更换照片", systemImage: "photo")
-                    }
-                    Spacer()
-                    Button(role: .destructive) {
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("删除", systemImage: "trash")
                     }
                 }
             }
@@ -547,6 +610,37 @@ private struct TicketImagePreviewView: View {
                 Text("删除后这张图片将不再保存在当前票根记录里。")
             }
         }
+    }
+
+    private var previewActions: some View {
+        HStack(spacing: 12) {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                Label("更换照片", systemImage: "photo")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+                    .foregroundStyle(.white)
+                    .background(.white.opacity(0.16))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            Button(role: .destructive) {
+                showingDeleteAlert = true
+            } label: {
+                Label("删除", systemImage: "trash")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+                    .foregroundStyle(.white)
+                    .background(Color.red.opacity(0.78))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(14)
+        .background(.black.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 22)
     }
 
     private var fullTicketImage: some View {

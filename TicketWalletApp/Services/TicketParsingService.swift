@@ -38,7 +38,7 @@ struct TicketParsingService {
     private func cleanedTitleCandidate(from line: String) -> String? {
         let candidate = stripTitleLabel(from: normalized(line))
         guard isLikelyMovieTitle(candidate) else { return nil }
-        return candidate
+        return cleanedMovieTitle(candidate)
     }
 
     private func stripTitleLabel(from line: String) -> String {
@@ -92,6 +92,21 @@ struct TicketParsingService {
             .replacingOccurrences(of: "：", with: ":")
             .replacingOccurrences(of: "　", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func cleanedMovieTitle(_ title: String) -> String {
+        var text = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let patterns = [
+            #"\s*[（(][^）)]*(英文|英语|中文|国语|原版|中字|字幕|2D|3D|4D|IMAX|CINITY|中国巨幕|杜比|激光)[^）)]*[）)]\s*$"#,
+            #"\s*(中文|国语|原版|英语|英文)?\s*[234]D\s*$"#,
+            #"\s*(IMAX|CINITY|中国巨幕|杜比全景声|杜比|激光|原版|国语|中字|中文字幕)\s*$"#
+        ]
+
+        for pattern in patterns {
+            text = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func inferPrice(from text: String) -> String {
