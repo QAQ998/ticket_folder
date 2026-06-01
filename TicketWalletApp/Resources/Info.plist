@@ -24,6 +24,13 @@
 	<string>用于拍摄电影票根，保存到散场记。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择已经拍好的电影票根照片。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于开发测试时连接本机电影资料代理服务。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>TMDB_API_KEY</key>
 	<string>$(TMDB_API_KEY)</string>
 	<key>TMDB_API_BASE_URL</key>
