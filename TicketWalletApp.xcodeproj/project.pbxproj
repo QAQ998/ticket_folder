@@ -22,6 +22,7 @@
 		01B00000000000000000000E /* SharedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00000000000000000000E /* SharedViews.swift */; };
 		01B00000000000000000000F /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000025 /* RootTabView.swift */; };
 		01B000000000000000000010 /* TicketSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000027 /* TicketSearchView.swift */; };
+		01B000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000028 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +47,7 @@
 		01A000000000000000000025 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		01A000000000000000000026 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		01A000000000000000000027 /* TicketSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TicketSearchView.swift; sourceTree = "<group>"; };
+		01A000000000000000000028 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +132,7 @@
 			isa = PBXGroup;
 			children = (
 				01A00000000000000000000F /* Info.plist */,
+				01A000000000000000000028 /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -193,6 +196,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01B000000000000000000011 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
