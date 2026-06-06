@@ -21,7 +21,7 @@ struct MovieSearchView: View {
     var body: some View {
         NavigationStack {
             List {
-                TMDBAttributionView()
+                MovieMetadataSourceView()
                     .listRowBackground(TicketPalette.background)
 
                 if !message.isEmpty {

@@ -44,6 +44,7 @@ struct TicketRecordEditorView: View {
     @State private var isFetchingMovieMetadata = false
     @State private var message = ""
     @State private var recognizedLines: [String] = []
+    @State private var movieTitleCandidates: [String] = []
     @State private var pendingDeletedTicketImagePaths: [String] = []
     @State private var newlyImportedTicketImagePaths: [String] = []
     @FocusState private var focusedField: EditorField?
@@ -59,7 +60,7 @@ struct TicketRecordEditorView: View {
         _year = State(initialValue: record?.year ?? initialMetadata?.details.year ?? "")
         _director = State(initialValue: record?.director ?? initialMetadata?.director ?? "")
         _tmdbId = State(initialValue: record?.tmdbId ?? initialMetadata?.details.id)
-        _metadataSource = State(initialValue: record?.metadataSource ?? (initialMetadata == nil ? "manual" : "tmdb"))
+        _metadataSource = State(initialValue: record?.metadataSource ?? (initialMetadata == nil ? "manual" : "movieMetadata"))
         _metadataFetchedAt = State(initialValue: record?.metadataFetchedAt ?? (initialMetadata == nil ? nil : .now))
         _posterLocalPath = State(initialValue: record?.posterLocalPath ?? initialMetadata?.posterLocalPath)
         _posterCachedAt = State(initialValue: record?.posterCachedAt ?? (initialMetadata?.posterLocalPath == nil ? nil : .now))
@@ -225,7 +226,7 @@ struct TicketRecordEditorView: View {
                     ProgressView()
                         .frame(width: 46, height: 34)
                 } else {
-                    Text(metadataSource == "tmdb" ? "更新" : "获取")
+                    Text(metadataSource == "manual" ? "获取" : "更新")
                         .font(.subheadline.weight(.semibold))
                         .frame(width: 46, height: 34)
                 }
@@ -246,7 +247,7 @@ struct TicketRecordEditorView: View {
 
     private var metadataSummary: String {
         let parts = [year, director].filter { !$0.isEmpty }
-        return parts.isEmpty ? "海报、年份、导演可从 TMDB 获取" : parts.joined(separator: " · ")
+        return parts.isEmpty ? "海报、年份、导演可从电影资料源获取" : parts.joined(separator: " · ")
     }
 
     private func styledTextField(_ placeholder: String, text: Binding<String>, field: EditorField, axis: Axis = .horizontal) -> some View {
@@ -390,6 +391,7 @@ struct TicketRecordEditorView: View {
 
             let text = try await ocrService.recognizeText(in: image)
             recognizedLines = normalizedLines(from: text)
+            movieTitleCandidates = parsingService.titleCandidates(from: recognizedLines)
             let draft = parsingService.parse(text)
             if !draft.movieTitle.isEmpty { movieTitle = draft.movieTitle }
             watchedAt = draft.watchedAt
@@ -399,8 +401,8 @@ struct TicketRecordEditorView: View {
             if !draft.ticketPrice.isEmpty { ticketPrice = draft.ticketPrice }
             message = draft.isEmpty ? "没有识别出明确字段，可以点字段进行修正。" : "已识别票面信息，请快速确认。"
             isRecognizing = false
-            if !movieTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-               metadataSource != "tmdb" {
+            if !metadataTitleQueries().isEmpty,
+               metadataSource == "manual" {
                 await fetchMovieMetadata(quiet: true)
             }
         } catch {
@@ -410,8 +412,8 @@ struct TicketRecordEditorView: View {
     }
 
     private func fetchMovieMetadata(quiet: Bool = false) async {
-        let query = cleanedMovieTitle(movieTitle)
-        guard !query.isEmpty else { return }
+        let queries = metadataTitleQueries()
+        guard !queries.isEmpty else { return }
         guard tmdbClient.isConfigured else {
             if !quiet {
                 message = TMDBError.missingAPIKey.localizedDescription
@@ -422,33 +424,72 @@ struct TicketRecordEditorView: View {
         isFetchingMovieMetadata = true
         defer { isFetchingMovieMetadata = false }
 
-        do {
-            guard let first = try await tmdbClient.searchMovies(query: query).first else {
+        var lastError: Error?
+        var triedQueries: [String] = []
+
+        for query in queries {
+            triedQueries.append(query)
+            do {
+                guard let first = try await tmdbClient.searchMovies(query: query).first else {
+                    continue
+                }
+                let usedFallbackTitle = query != cleanedMovieTitle(movieTitle)
+                let shouldUseMatchedTitle = query != cleanedMovieTitle(movieTitle)
+                    || parsingService.titleCandidates(from: [movieTitle]).isEmpty
+                let metadata = try await tmdbClient.metadata(for: first.id)
+                applyMovieMetadata(metadata, matchedTitle: query, shouldUseMatchedTitle: shouldUseMatchedTitle)
                 if !quiet {
-                    message = "没有找到匹配的电影资料，可以稍后再试。"
+                    message = usedFallbackTitle ? "已根据候选片名「\(query)」获取电影资料。" : "已获取电影资料。"
                 }
                 return
+            } catch {
+                lastError = error
+                if case TMDBError.networkUnavailable = error {
+                    break
+                }
             }
-            let metadata = try await tmdbClient.metadata(for: first.id)
-            applyMovieMetadata(metadata)
+        }
+
+        if let lastError {
             if !quiet {
-                message = "已获取电影资料。"
+                message = lastError.localizedDescription
             }
-        } catch {
-            if !quiet {
-                message = error.localizedDescription
-            }
+        } else if !quiet {
+            message = triedQueries.count > 1 ? "这些候选片名都没有找到匹配资料，可以手动修正片名后再试。" : "没有找到匹配的电影资料，可以手动修正片名后再试。"
+        } else if triedQueries.count > 1 {
+            message = "未能自动匹配电影资料，请检查片名。"
         }
     }
 
-    private func applyMovieMetadata(_ metadata: TMDBMovieMetadata) {
+    private func metadataTitleQueries() -> [String] {
+        var seen = Set<String>()
+        let currentCandidates = parsingService.titleCandidates(from: [movieTitle])
+        let candidates = currentCandidates + movieTitleCandidates
+
+        return candidates
+            .map(cleanedMovieTitle)
+            .filter { !$0.isEmpty }
+            .filter { candidate in
+                if seen.contains(candidate) { return false }
+                seen.insert(candidate)
+                return true
+            }
+    }
+
+    private func applyMovieMetadata(
+        _ metadata: TMDBMovieMetadata,
+        matchedTitle: String,
+        shouldUseMatchedTitle: Bool
+    ) {
         let details = metadata.details
-        movieTitle = details.title
-        originalTitle = details.originalTitle ?? ""
+        if shouldUseMatchedTitle {
+            movieTitle = matchedTitle
+        }
+        originalTitle = details.originalTitle ?? details.title
         year = details.year
         director = metadata.director
         tmdbId = details.id
-        metadataSource = "tmdb"
+        metadataSource = "movieMetadata"
         metadataFetchedAt = .now
         if let cachedPoster = metadata.posterLocalPath {
             PosterCacheStore.delete(posterLocalPath)
@@ -574,46 +615,67 @@ private struct TicketImagePreviewView: View {
     @State private var showingDeleteAlert = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                TicketPalette.dark.ignoresSafeArea()
+        ZStack {
+            TicketPalette.dark.ignoresSafeArea()
 
-                fullTicketImage
-                    .padding(16)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        dismiss()
-                    }
-
-                VStack {
-                    Spacer()
-                    previewActions
-                }
-            }
-            .navigationTitle("票根图片")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") {
-                        dismiss()
-                    }
-                }
-            }
-            .alert("删除这张票根图片？", isPresented: $showingDeleteAlert) {
-                Button("删除", role: .destructive) {
-                    onDelete()
+            fullTicketImage
+                .padding(16)
+                .contentShape(Rectangle())
+                .onTapGesture {
                     dismiss()
                 }
-                Button("取消", role: .cancel) {}
-            } message: {
-                Text("删除后这张图片将不再保存在当前票根记录里。")
+
+            VStack {
+                previewTopActions
+                Spacer()
+                previewActions
             }
+        }
+        .alert("删除这张票根图片？", isPresented: $showingDeleteAlert) {
+            Button("删除", role: .destructive) {
+                onDelete()
+                dismiss()
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("删除后这张图片将不再保存在当前票根记录里。")
         }
     }
 
+    private var previewTopActions: some View {
+        HStack {
+            Button(role: .destructive) {
+                showingDeleteAlert = true
+            } label: {
+                Label("删除", systemImage: "trash")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 14)
+                    .frame(height: 42)
+                    .foregroundStyle(.white)
+                    .background(Color.red.opacity(0.92))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            Spacer()
+
+            Button {
+                dismiss()
+            } label: {
+                Text("关闭")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .frame(height: 42)
+                    .foregroundStyle(TicketPalette.ink)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 18)
+    }
+
     private var previewActions: some View {
-        HStack(spacing: 12) {
+        HStack {
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 Label("更换照片", systemImage: "photo")
                     .font(.subheadline.weight(.semibold))
@@ -621,18 +683,6 @@ private struct TicketImagePreviewView: View {
                     .frame(height: 46)
                     .foregroundStyle(.white)
                     .background(.white.opacity(0.16))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-
-            Button(role: .destructive) {
-                showingDeleteAlert = true
-            } label: {
-                Label("删除", systemImage: "trash")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 46)
-                    .foregroundStyle(.white)
-                    .background(Color.red.opacity(0.78))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }

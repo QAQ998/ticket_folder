@@ -68,9 +68,8 @@ private struct SettingsPlaceholderView: View {
                     }
 
                     TicketSectionCard(title: "电影资料", systemImage: "film") {
-                        SettingsRow(title: "资料来源", value: "TMDB")
-                        SettingsRow(title: "API Key", value: tmdbClient.isConfigured ? "已配置" : "未配置")
-                        TMDBAttributionView()
+                        SettingsRow(title: "资料源状态", value: tmdbClient.isConfigured ? "已配置" : "未配置")
+                        MovieMetadataSourceView()
                     }
                 }
                 .padding(24)

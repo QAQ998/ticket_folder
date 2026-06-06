@@ -31,9 +31,9 @@ struct TicketRecordDetailView: View {
                         infoRow("座位", record.seat)
                         infoRow("票价", record.ticketPrice)
                     }
-                    if record.metadataSource == "tmdb" {
+                    if record.metadataSource != "manual" {
                         TicketSectionCard(title: "电影资料来源", systemImage: "film") {
-                            TMDBAttributionView()
+                            MovieMetadataSourceView()
                         }
                     }
                     TicketSectionCard(title: "私人记录", systemImage: "pencil.and.outline") {
@@ -86,7 +86,7 @@ struct TicketRecordDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 VStack(alignment: .leading, spacing: 10) {
-                    TicketPill(text: record.metadataSource == "tmdb" ? "TMDB 资料" : "手动资料")
+                    TicketPill(text: record.metadataSource == "manual" ? "手动资料" : "电影资料")
                     Text(record.movieTitle.isEmpty ? "未命名电影" : record.movieTitle)
                         .font(.title2.weight(.semibold))
                         .foregroundStyle(TicketPalette.ink)

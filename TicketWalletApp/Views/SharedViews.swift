@@ -105,20 +105,20 @@ struct TicketSectionCard<Content: View>: View {
     }
 }
 
-struct TMDBAttributionView: View {
+struct MovieMetadataSourceView: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "film")
                 .foregroundStyle(TicketPalette.muted)
-            Text("电影资料由 TMDB 提供")
+            Text("电影资料用于辅助匹配，请以票根信息为准")
                 .foregroundStyle(TicketPalette.muted)
-            Link("了解更多", destination: URL(string: "https://www.themoviedb.org/")!)
-                .foregroundStyle(TicketPalette.accent)
         }
         .font(.caption)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+typealias TMDBAttributionView = MovieMetadataSourceView
 
 struct PrimaryActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {

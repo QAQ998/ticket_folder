@@ -146,7 +146,7 @@ struct TicketSearchView: View {
             }
         } else {
             TicketSectionCard(title: "开始搜索", systemImage: "magnifyingglass") {
-                Text("可以搜索已保存的票根，也可以实时查找 TMDB 电影资料。")
+                Text("可以搜索已保存的票根，也可以实时查找电影资料。")
                     .font(.subheadline)
                     .foregroundStyle(TicketPalette.muted)
             }
@@ -172,7 +172,7 @@ struct TicketSearchView: View {
 
             TicketSectionCard(title: "电影推荐", systemImage: "film") {
                 VStack(alignment: .leading, spacing: 12) {
-                    TMDBAttributionView()
+                    MovieMetadataSourceView()
 
                     if isLoading {
                         ProgressView("正在搜索电影")

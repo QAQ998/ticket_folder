@@ -192,6 +192,9 @@ struct TMDBClient {
 
     func posterURL(for path: String?) -> URL? {
         guard let path, !path.isEmpty else { return nil }
+        if let absoluteURL = URL(string: path), absoluteURL.scheme != nil {
+            return absoluteURL
+        }
         return imageBaseURL.appending(path: path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
     }
 
@@ -260,16 +263,16 @@ enum TMDBError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            "还没有配置 TMDB API Key。配置后即可搜索电影、补全导演年份并缓存海报。"
+            "还没有配置电影资料源。配置后即可搜索电影并补全年份、导演和海报。"
         case .requestFailed:
             "电影资料暂时获取失败，可以稍后再试或手动填写。"
         case .invalidResponse:
             "电影资料返回格式暂时无法识别，可以稍后再试或手动填写。"
         case .networkUnavailable(let reason):
             if let reason, !reason.isEmpty {
-                "无法连接 TMDB：\(reason)"
+                "无法连接电影资料源：\(reason)"
             } else {
-                "无法连接 TMDB。请检查手机网络、VPN 或代理设置后再试。"
+                "无法连接电影资料源。请检查手机网络、VPN 或代理设置后再试。"
             }
         }
     }
