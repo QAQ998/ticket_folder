@@ -23,6 +23,8 @@
 		01B00000000000000000000F /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000025 /* RootTabView.swift */; };
 		01B000000000000000000010 /* TicketSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000027 /* TicketSearchView.swift */; };
 		01B000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000028 /* Assets.xcassets */; };
+		01B000000000000000000012 /* TicketLLMRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000029 /* TicketLLMRecognitionService.swift */; };
+		01B000000000000000000013 /* MovieMetadataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00000000000000000002A /* MovieMetadataService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +50,8 @@
 		01A000000000000000000026 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		01A000000000000000000027 /* TicketSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TicketSearchView.swift; sourceTree = "<group>"; };
 		01A000000000000000000028 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		01A000000000000000000029 /* TicketLLMRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TicketLLMRecognitionService.swift; sourceTree = "<group>"; };
+		01A00000000000000000002A /* MovieMetadataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieMetadataService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,7 +110,9 @@
 			children = (
 				01A000000000000000000004 /* TicketImageStore.swift */,
 				01A000000000000000000005 /* TicketOCRService.swift */,
+				01A000000000000000000029 /* TicketLLMRecognitionService.swift */,
 				01A000000000000000000006 /* TicketParsingService.swift */,
+				01A00000000000000000002A /* MovieMetadataService.swift */,
 				01A000000000000000000007 /* TMDBClient.swift */,
 				01A000000000000000000008 /* PosterCacheStore.swift */,
 			);
@@ -211,7 +217,9 @@
 				01B000000000000000000003 /* MovieRecord.swift in Sources */,
 				01B000000000000000000004 /* TicketImageStore.swift in Sources */,
 				01B000000000000000000005 /* TicketOCRService.swift in Sources */,
+				01B000000000000000000012 /* TicketLLMRecognitionService.swift in Sources */,
 				01B000000000000000000006 /* TicketParsingService.swift in Sources */,
+				01B000000000000000000013 /* MovieMetadataService.swift in Sources */,
 				01B000000000000000000007 /* TMDBClient.swift in Sources */,
 				01B000000000000000000008 /* PosterCacheStore.swift in Sources */,
 				01B000000000000000000009 /* TicketWalletHomeView.swift in Sources */,

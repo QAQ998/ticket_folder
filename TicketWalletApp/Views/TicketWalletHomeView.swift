@@ -15,17 +15,10 @@ struct TicketWalletHomeView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         header
 
-                        if records.isEmpty {
+                        if completedRecords.isEmpty {
                             emptyState
                         } else {
-                            LazyVStack(spacing: 14) {
-                                ForEach(records) { record in
-                                    NavigationLink(value: record) {
-                                        TicketCard(record: record)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
+                            recordGroups
                         }
                     }
                     .padding(24)
@@ -42,6 +35,42 @@ struct TicketWalletHomeView: View {
             .sheet(isPresented: $showingSearch) {
                 TicketSearchView()
             }
+            .task {
+                deleteExistingDrafts()
+            }
+        }
+    }
+
+    private var drafts: [MovieRecord] {
+        records.filter(\.isDraft)
+    }
+
+    private var completedRecords: [MovieRecord] {
+        records.filter { !$0.isDraft }
+    }
+
+    private var recordGroups: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            if !completedRecords.isEmpty {
+                recordGroup(title: "票根", systemImage: "ticket", records: completedRecords)
+            }
+        }
+    }
+
+    private func recordGroup(title: String, systemImage: String, records: [MovieRecord]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+                .foregroundStyle(TicketPalette.ink)
+
+            LazyVStack(spacing: 14) {
+                ForEach(records) { record in
+                    NavigationLink(value: record) {
+                        TicketCard(record: record)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -50,21 +79,15 @@ struct TicketWalletHomeView: View {
             HStack(alignment: .top, spacing: 14) {
                 AppPageHeader("散场记", subtitle: "开场前也可以记，散场后慢慢收好。")
 
-                Button {
-                    showingSearch = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(TicketPalette.ink)
-                        .frame(width: 44, height: 44)
-                        .background(TicketPalette.surface)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(TicketPalette.border, lineWidth: 1)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                HStack(spacing: 10) {
+                    LiquidGlassIconButton(
+                        systemImage: "magnifyingglass",
+                        accessibilityLabel: "搜索",
+                        foreground: TicketPalette.ink
+                    ) {
+                        showingSearch = true
+                    }
                 }
-                .accessibilityLabel("搜索")
             }
 
             Button {
@@ -75,6 +98,14 @@ struct TicketWalletHomeView: View {
             .buttonStyle(PrimaryActionButtonStyle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func deleteExistingDrafts() {
+        guard !drafts.isEmpty else { return }
+        for draft in drafts {
+            modelContext.delete(draft)
+        }
+        try? modelContext.save()
     }
 
     private var emptyState: some View {
@@ -130,7 +161,10 @@ private struct TicketCard: View {
                         .font(.caption)
                         .foregroundStyle(TicketPalette.muted)
                         .lineLimit(1)
-                    TicketPill(text: record.watchedAt.ticketDateText)
+                    TicketPill(
+                        text: record.watchedAt.ticketDateText,
+                        tint: TicketPalette.accent
+                    )
                     Text([record.cinema, record.hall, record.seat].filter { !$0.isEmpty }.joined(separator: " / "))
                         .font(.caption)
                         .foregroundStyle(TicketPalette.muted)

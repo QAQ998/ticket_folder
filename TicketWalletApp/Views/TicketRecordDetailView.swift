@@ -31,9 +31,9 @@ struct TicketRecordDetailView: View {
                         infoRow("座位", record.seat)
                         infoRow("票价", record.ticketPrice)
                     }
-                    if record.metadataSource == "tmdb" {
+                    if !record.metadataSource.isEmpty, record.metadataSource != "manual", !record.isDraft {
                         TicketSectionCard(title: "电影资料来源", systemImage: "film") {
-                            TMDBAttributionView()
+                            metadataAttribution
                         }
                     }
                     TicketSectionCard(title: "私人记录", systemImage: "pencil.and.outline") {
@@ -53,6 +53,7 @@ struct TicketRecordDetailView: View {
         }
         .navigationTitle(record.movieTitle.isEmpty ? "票根详情" : record.movieTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button("编辑") {
@@ -86,11 +87,14 @@ struct TicketRecordDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 VStack(alignment: .leading, spacing: 10) {
-                    TicketPill(text: record.metadataSource == "tmdb" ? "TMDB 资料" : "手动资料")
+                    TicketPill(
+                        text: metadataSourceLabel,
+                        tint: TicketPalette.accent
+                    )
                     Text(record.movieTitle.isEmpty ? "未命名电影" : record.movieTitle)
                         .font(.title2.weight(.semibold))
                         .foregroundStyle(TicketPalette.ink)
-                    Text([record.year, record.director].filter { !$0.isEmpty }.joined(separator: " · "))
+                    Text(movieSummary)
                         .font(.subheadline)
                         .foregroundStyle(TicketPalette.muted)
                 }
@@ -113,6 +117,39 @@ struct TicketRecordDetailView: View {
         .background(TicketPalette.paper)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.22), radius: 12, x: 0, y: 8)
+    }
+
+    private var movieSummary: String {
+        [
+            record.releaseDate.isEmpty ? record.year : record.releaseDate,
+            record.director,
+            record.runtimeMinutes.map { "\($0) 分钟" },
+            record.doubanRating.isEmpty ? nil : "豆瓣 \(record.doubanRating)"
+        ]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+
+    private var metadataSourceLabel: String {
+        if record.metadataSource.contains("douban") {
+            return "豆瓣资料"
+        }
+        if record.metadataSource.contains("tmdb") {
+            return "TMDB 资料"
+        }
+        return "手动资料"
+    }
+
+    @ViewBuilder
+    private var metadataAttribution: some View {
+        if record.metadataSource.contains("douban") {
+            Text("影片资料优先由豆瓣资料代理提供，海报或缺失字段可能由 TMDB 兜底。")
+                .font(.footnote)
+                .foregroundStyle(TicketPalette.muted)
+        } else if record.metadataSource.contains("tmdb") {
+            TMDBAttributionView()
+        }
     }
 
     private func infoRow(_ label: String, _ value: String) -> some View {

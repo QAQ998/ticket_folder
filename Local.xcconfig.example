@@ -1,9 +1,41 @@
 // Copy this file to Local.xcconfig.
 // Never commit real API keys.
+URL_SLASH = /
 TMDB_API_KEY = your_tmdb_api_key_here
 // Optional. Use a TMDB-compatible proxy base URL when phones cannot reach TMDB directly.
-// Example: https://your-worker.workers.dev/3
+// Example: https:$(URL_SLASH)$(URL_SLASH)your-worker.workers.dev$(URL_SLASH)3
 TMDB_API_BASE_URL =
 // Optional. Use a poster proxy compatible with /t/p/w500 when image.tmdb.org is not reachable.
-// Example: https://your-worker.workers.dev/t/p/w500
+// Example: https:$(URL_SLASH)$(URL_SLASH)your-worker.workers.dev$(URL_SLASH)t$(URL_SLASH)p$(URL_SLASH)w500
 TMDB_IMAGE_BASE_URL =
+
+// Preferred movie metadata source for domestic users.
+// Do not point the app directly at Douban web pages. Use your own proxy/API with cache and rate limiting.
+// App expects GET {DOUBAN_API_BASE_URL}/movie/search?query=片名
+// Response can be either a movie object or {"results":[...]} with fields:
+// title, original_title, release_date, directors/director, runtime_minutes/runtime, douban_rating, poster_url.
+// Example: https:$(URL_SLASH)$(URL_SLASH)your-worker.workers.dev
+DOUBAN_API_BASE_URL =
+// Optional bearer token passed to the proxy.
+DOUBAN_API_KEY =
+
+// Optional. Enables cloud LLM ticket recognition. Ticket images are not sent; only OCR text, coordinates, and confidence are sent.
+LLM_API_KEY = your_llm_api_key_here
+// Optional. Use an OpenAI-compatible /v1 base URL. Leave empty for official OpenAI.
+// In xcconfig files, write URLs with $(URL_SLASH); raw // is parsed as a comment.
+// Examples:
+// - https:$(URL_SLASH)$(URL_SLASH)api.openai.com$(URL_SLASH)v1
+// - https:$(URL_SLASH)$(URL_SLASH)api.deepseek.com$(URL_SLASH)v1
+// - https:$(URL_SLASH)$(URL_SLASH)dashscope.aliyuncs.com$(URL_SLASH)compatible-mode$(URL_SLASH)v1
+// - https:$(URL_SLASH)$(URL_SLASH)api.siliconflow.cn$(URL_SLASH)v1
+// - https:$(URL_SLASH)$(URL_SLASH)openrouter.ai$(URL_SLASH)api$(URL_SLASH)v1
+LLM_API_BASE_URL =
+// Use responses for official OpenAI Responses API; use chat_completions for most OpenAI-compatible providers.
+LLM_API_STYLE = responses
+// Suggested default for official OpenAI. Change this when testing other providers.
+LLM_MODEL = gpt-5-mini
+
+// Backward-compatible aliases. Prefer LLM_* above for new configs.
+OPENAI_API_KEY = $(LLM_API_KEY)
+OPENAI_API_BASE_URL = $(LLM_API_BASE_URL)
+OPENAI_MODEL = $(LLM_MODEL)

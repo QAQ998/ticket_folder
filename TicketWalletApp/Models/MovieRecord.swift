@@ -8,6 +8,10 @@ final class MovieRecord {
     var originalTitle: String
     var year: String
     var director: String
+    var releaseDate: String = ""
+    var runtimeMinutes: Int?
+    var doubanRating: String = ""
+    var tmdbRating: Double?
     var tmdbId: Int?
     var metadataSource: String
     var metadataFetchedAt: Date?
@@ -26,11 +30,34 @@ final class MovieRecord {
     var createdAt: Date
     var updatedAt: Date
 
+    var isDraft: Bool {
+        get {
+            metadataSource.hasPrefix("draft")
+        }
+        set {
+            if newValue {
+                if !metadataSource.hasPrefix("draft") {
+                    metadataSource = metadataSource.isEmpty || metadataSource == "manual" ? "draft" : "draft_\(metadataSource)"
+                }
+            } else if metadataSource == "draft_tmdb" {
+                metadataSource = "tmdb"
+            } else if metadataSource.hasPrefix("draft_") {
+                metadataSource = String(metadataSource.dropFirst("draft_".count))
+            } else if metadataSource.hasPrefix("draft") {
+                metadataSource = "manual"
+            }
+        }
+    }
+
     init(
         movieTitle: String = "",
         originalTitle: String = "",
         year: String = "",
         director: String = "",
+        releaseDate: String = "",
+        runtimeMinutes: Int? = nil,
+        doubanRating: String = "",
+        tmdbRating: Double? = nil,
         tmdbId: Int? = nil,
         metadataSource: String = "manual",
         metadataFetchedAt: Date? = nil,
@@ -43,13 +70,18 @@ final class MovieRecord {
         ticketPrice: String = "",
         ticketImagePaths: [String] = [],
         rating: Int = 0,
-        note: String = ""
+        note: String = "",
+        isDraft: Bool = false
     ) {
         self.id = UUID()
         self.movieTitle = movieTitle
         self.originalTitle = originalTitle
         self.year = year
         self.director = director
+        self.releaseDate = releaseDate
+        self.runtimeMinutes = runtimeMinutes
+        self.doubanRating = doubanRating
+        self.tmdbRating = tmdbRating
         self.tmdbId = tmdbId
         self.metadataSource = metadataSource
         self.metadataFetchedAt = metadataFetchedAt
@@ -65,6 +97,7 @@ final class MovieRecord {
         self.note = note
         self.createdAt = .now
         self.updatedAt = .now
+        self.isDraft = isDraft
     }
 }
 

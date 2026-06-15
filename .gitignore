@@ -14,6 +14,9 @@ Local.xcconfig
 # macOS
 .DS_Store
 
+# Local debug artifacts and sample photos
+tmp/
+
 # Swift Package Manager
 .build/
 Package.resolved

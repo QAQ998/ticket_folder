@@ -11,9 +11,10 @@ struct TicketSearchView: View {
     @State private var message = ""
     @State private var isLoading = false
     @State private var searchTask: Task<Void, Never>?
-    @State private var selectedMetadata: TMDBMovieMetadata?
+    @State private var selectedMetadata: MovieMetadata?
 
     private let client = TMDBClient()
+    private let metadataService = MovieMetadataService()
 
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -74,7 +75,7 @@ struct TicketSearchView: View {
                 searchTask?.cancel()
             }
             .sheet(item: $selectedMetadata) { metadata in
-                TicketRecordEditorView(initialMetadata: metadata)
+                TicketRecordEditorView(initialMovieMetadata: metadata)
             }
         }
     }
@@ -146,7 +147,7 @@ struct TicketSearchView: View {
             }
         } else {
             TicketSectionCard(title: "开始搜索", systemImage: "magnifyingglass") {
-                Text("可以搜索已保存的票根，也可以实时查找 TMDB 电影资料。")
+                Text("可以搜索已保存的票根，也可以按片名查找影片资料；保存前会优先自动补全豆瓣信息。")
                     .font(.subheadline)
                     .foregroundStyle(TicketPalette.muted)
             }
@@ -172,7 +173,7 @@ struct TicketSearchView: View {
 
             TicketSectionCard(title: "电影推荐", systemImage: "film") {
                 VStack(alignment: .leading, spacing: 12) {
-                    TMDBAttributionView()
+                    MovieMetadataAttributionView()
 
                     if isLoading {
                         ProgressView("正在搜索电影")
@@ -182,6 +183,23 @@ struct TicketSearchView: View {
                             .font(.subheadline)
                             .foregroundStyle(TicketPalette.muted)
                     }
+
+                    Button {
+                        addHistory(trimmedQuery)
+                        Task {
+                            await selectQuery(trimmedQuery)
+                        }
+                    } label: {
+                        Label("按当前片名自动补全", systemImage: "sparkles")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
+                    .background(TicketPalette.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .disabled(trimmedQuery.isEmpty || isLoading || !metadataService.isConfigured)
 
                     ForEach(movieResults.prefix(8)) { movie in
                         Button {
@@ -222,16 +240,17 @@ struct TicketSearchView: View {
 
     private func searchMovies(for currentQuery: String) async {
         guard client.isConfigured else {
-            await updateSearchState(for: currentQuery, results: [], message: TMDBError.missingAPIKey.localizedDescription, isLoading: false)
+            let message = metadataService.isConfigured ? "可以直接按当前片名自动补全影片资料。" : MovieMetadataError.missingProvider.localizedDescription
+            updateSearchState(for: currentQuery, results: [], message: message, isLoading: false)
             return
         }
 
-        await updateSearchState(for: currentQuery, results: nil, message: "", isLoading: true)
+        updateSearchState(for: currentQuery, results: nil, message: "", isLoading: true)
 
         do {
             let results = try await client.searchMovies(query: currentQuery)
             guard !Task.isCancelled else { return }
-            await updateSearchState(
+            updateSearchState(
                 for: currentQuery,
                 results: results,
                 message: results.isEmpty ? "没有找到匹配的电影。" : "",
@@ -239,7 +258,7 @@ struct TicketSearchView: View {
             )
         } catch {
             guard !Task.isCancelled else { return }
-            await updateSearchState(for: currentQuery, results: [], message: error.localizedDescription, isLoading: false)
+            updateSearchState(for: currentQuery, results: [], message: error.localizedDescription, isLoading: false)
         }
     }
 
@@ -259,10 +278,37 @@ struct TicketSearchView: View {
         defer { isLoading = false }
 
         do {
-            selectedMetadata = try await client.metadata(for: movie.id)
+            selectedMetadata = try await metadataService.metadata(for: metadataQueries(for: movie))
         } catch {
             message = error.localizedDescription
         }
+    }
+
+    @MainActor
+    private func selectQuery(_ query: String) async {
+        let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            selectedMetadata = try await metadataService.metadata(for: [clean])
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func metadataQueries(for movie: TMDBMovieSearchResult) -> [String] {
+        var seen = Set<String>()
+        return [movie.title, movie.originalTitle ?? "", trimmedQuery]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { query in
+                if seen.contains(query) { return false }
+                seen.insert(query)
+                return true
+            }
     }
 
     private func addHistory(_ keyword: String) {
@@ -351,8 +397,4 @@ private struct SearchMovieRow: View {
         }
         .padding(.vertical, 4)
     }
-}
-
-extension TMDBMovieMetadata: Identifiable {
-    var id: Int { details.id }
 }

@@ -1,0 +1,498 @@
+{
+  "version": 2,
+  "description": "Synthetic but intentionally noisy ticket OCR fixtures based on OCR_RULES.md. Cases are designed to stress filtering, correction, adjacent-field inference, and manual-review decisions. No real order number, phone number, QR code, or personal data is included.",
+  "fields": [
+    "movie_title",
+    "watched_at",
+    "cinema",
+    "hall",
+    "seat",
+    "ticket_price"
+  ],
+  "cases": [
+    {
+      "id": "maoyan_zongheng_verified_rules",
+      "name": "猫眼/纵横西丽店，平台词和取票码干扰",
+      "category": "mobile_screenshot",
+      "complexity": "hard",
+      "noise_focus": ["ticketing_platform", "pickup_code", "format_suffix", "phone_tail"],
+      "input": {
+        "ocr_text": "猫眼\n电影票\n哪吒之魔童闹海 中文3D\n广东省深圳市纵横西丽店\n10号激光厅\n9排6座\n2025年02月01日 19:35\n票价\n50.00\n取票码 000000\n手机号尾号 0000\n请提前15分钟取票"
+      },
+      "expected": {
+        "movie_title": "哪吒之魔童闹海",
+        "watched_at": "2025-02-01 19:35",
+        "cinema": "广东省深圳市纵横西丽店",
+        "hall": "10号激光厅",
+        "seat": "9排6座",
+        "ticket_price": "50.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "time_child_not_filtered_by_time_word",
+      "name": "片名包含“时间”，不能被时间规则误过滤",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["title_keyword_collision", "cinema_brand", "bare_price"],
+      "input": {
+        "ocr_text": "星河寰宇城\n时间之子\n2号DIS X临境音厅\n10排13座\n2025-06-01\n20:10\n100.00\nCOUPON\nNO. 0000000000\n免费停车凭票根领取"
+      },
+      "expected": {
+        "movie_title": "时间之子",
+        "watched_at": "2025-06-01 20:10",
+        "cinema": "星河寰宇城",
+        "hall": "2号DIS X临境音厅",
+        "seat": "10排13座",
+        "ticket_price": "100.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "cgv_bilingual_suffix_and_english_labels",
+      "name": "CGV 英文标签，中英混排和语言版本后缀",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["english_labels", "language_suffix", "date_time_split"],
+      "input": {
+        "ocr_text": "CINEMA\nCGV 深圳壹方城\nMOVIE\n一战再战(英文)\nHALL\n10号激光厅\nSEAT\n9排6座\nDATE 2025/10/18\nTIME 19:35\nPRICE RMB 50.00\nSelling Time 2025/10/18 18:02"
+      },
+      "expected": {
+        "movie_title": "一战再战",
+        "watched_at": "2025-10-18 19:35",
+        "cinema": "CGV 深圳壹方城",
+        "hall": "10号激光厅",
+        "seat": "9排6座",
+        "ticket_price": "RMB 50.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "cinity_avatar_format_in_title_and_cinema",
+      "name": "CINITY 同时出现在影院和片名制式中",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["format_suffix", "cinema_parentheses", "missing_hall"],
+      "input": {
+        "ocr_text": "中影国际影城(CINITY LED横岗店)\n阿凡达：火与烬(CINITY3D)\n座位 7排22座\n票价：40.00\n放映 2025.12.20 21:45\n票号 00000000\nTYPE 成人票"
+      },
+      "expected": {
+        "movie_title": "阿凡达：火与烬",
+        "watched_at": "2025-12-20 21:45",
+        "cinema": "中影国际影城(CINITY LED横岗店)",
+        "hall": "",
+        "seat": "7排22座",
+        "ticket_price": "40.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "labels_values_on_next_lines",
+      "name": "标签和值分行，依赖相邻行弱关联",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["split_label_value", "adjacent_inference", "bare_numbers"],
+      "input": {
+        "ocr_text": "影片名称\n宇宙探索编辑部\n影院\n纵横影城 西丽店\n影厅\n普通厅\n座位\n7排5座\n放映时间\n2023年04月15日\n18:10\n票价\n36.00\nKIOSK 03\n工号 001"
+      },
+      "expected": {
+        "movie_title": "宇宙探索编辑部",
+        "watched_at": "2023-04-15 18:10",
+        "cinema": "纵横影城 西丽店",
+        "hall": "普通厅",
+        "seat": "7排5座",
+        "ticket_price": "36.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "selling_time_vs_show_time",
+      "name": "售票时间和放映时间同时存在，不能误取售票时间",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["selling_time", "show_time", "multiple_dates"],
+      "input": {
+        "ocr_text": "热烈\n万达影城 宝安中心店\n5号厅\n8排9座\n售票时间 2023-07-28 12:03\n取票时间 2023-07-28 12:05\n放映时间 2023-07-29 20:30\n票价 ￥44.00\n服务热线 400-000-0000"
+      },
+      "expected": {
+        "movie_title": "热烈",
+        "watched_at": "2023-07-29 20:30",
+        "cinema": "万达影城 宝安中心店",
+        "hall": "5号厅",
+        "seat": "8排9座",
+        "ticket_price": "￥44.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "multiple_amounts_ticket_price_service_fee",
+      "name": "多个金额，区分票价、服务费和实付",
+      "category": "mobile_screenshot",
+      "complexity": "hard",
+      "noise_focus": ["multiple_amounts", "service_fee", "actual_paid"],
+      "input": {
+        "ocr_text": "淘票票\n涉过愤怒的海\n百丽宫影城 深圳万象天地店\n4号杜比全景声厅\nC排08座\n2023/11/25 21:20\n票价 34.00元\n影厅服务费 5.00元\n平台服务费 3.00元\n实付 42.00元\n优惠 -2.00元"
+      },
+      "expected": {
+        "movie_title": "涉过愤怒的海",
+        "watched_at": "2023-11-25 21:20",
+        "cinema": "百丽宫影城 深圳万象天地店",
+        "hall": "4号杜比全景声厅",
+        "seat": "C排08座",
+        "ticket_price": "34.00元"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "two_column_stub_mixed_two_seats",
+      "name": "正券副券左右联混排，重复字段和两个座位",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["two_column_layout", "duplicate_lines", "multiple_seats"],
+      "input": {
+        "ocr_text": "副券\n正券\n影片：沙丘2 中文IMAX\n沙丘2 中文IMAX\n影院：万象影城 深圳湾店\n万象影城 深圳湾店\n3号厅 3号厅\n10排11座 10排12座\n2024.03.08 20:00\n票价 65元\n凭此影票入场观看\n自助扫码进场"
+      },
+      "expected": {
+        "movie_title": "沙丘2",
+        "watched_at": "2024-03-08 20:00",
+        "cinema": "万象影城 深圳湾店",
+        "hall": "3号厅",
+        "seat": "10排11座 10排12座",
+        "ticket_price": "65元"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "mobile_page_ads_and_recommendations",
+      "name": "电子票页面混入推荐、卖品和广告文案",
+      "category": "mobile_screenshot",
+      "complexity": "hard",
+      "noise_focus": ["ads", "snacks", "recommendations", "platform_header"],
+      "input": {
+        "ocr_text": "美团电影\n今日推荐 爆米花可乐套餐 19.9\n猜你喜欢 附近热映\n封神第一部：朝歌风云\n博纳国际影城 龙华壹方天地店\n巨幕厅\n12排01座\n2023-07-22 13:20\n请勿携带外食\n套餐核销码 000000\n订单详情"
+      },
+      "expected": {
+        "movie_title": "封神第一部：朝歌风云",
+        "watched_at": "2023-07-22 13:20",
+        "cinema": "博纳国际影城 龙华壹方天地店",
+        "hall": "巨幕厅",
+        "seat": "12排01座",
+        "ticket_price": ""
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "thermal_faded_common_ocr_confusions",
+      "name": "热敏纸褪色，片名和金额字符被误识别",
+      "category": "paper_faded",
+      "complexity": "hard",
+      "noise_focus": ["faded_text", "ocr_confusion", "price_o_zero"],
+      "input": {
+        "ocr_text": "年会不能仃!\n卢米埃影城 来福士店\n6号厅\nE排1O座\n2024-01-06 19:0S\n￥48.OO\n条形码 880000000000"
+      },
+      "expected": {
+        "movie_title": "年会不能停！",
+        "watched_at": "2024-01-06 19:05",
+        "cinema": "卢米埃影城 来福士店",
+        "hall": "6号厅",
+        "seat": "E排10座",
+        "ticket_price": "￥48.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "shuffled_lines_from_rotated_photo",
+      "name": "横拍/旋转导致 OCR 行顺序错乱",
+      "category": "paper_rotated",
+      "complexity": "hard",
+      "noise_focus": ["shuffled_order", "rotation", "candidate_filtering"],
+      "input": {
+        "ocr_text": "8排16座\n票价 52.00\n入场观看\n2024年02月12日 15:10\n第二十条\n4号厅\nSFC上影影城 港汇恒隆店\n正券\nNO. A000000"
+      },
+      "expected": {
+        "movie_title": "第二十条",
+        "watched_at": "2024-02-12 15:10",
+        "cinema": "SFC上影影城 港汇恒隆店",
+        "hall": "4号厅",
+        "seat": "8排16座",
+        "ticket_price": "52.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "traditional_hk_ticket_noise",
+      "name": "繁体中文和港币票价",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["traditional_chinese", "foreign_currency", "admission_text"],
+      "input": {
+        "ocr_text": "電影名稱：年少日記\n百老匯電影中心\n4院\n座位 F12\n放映日期 2024/04/06 20:20\n票價 HK$95\n成人票\n請於開場前入場\n不得退換"
+      },
+      "expected": {
+        "movie_title": "年少日記",
+        "watched_at": "2024-04-06 20:20",
+        "cinema": "百老匯電影中心",
+        "hall": "4院",
+        "seat": "F12",
+        "ticket_price": "HK$95"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "english_machine_ticket_barcode",
+      "name": "英文机打票，条码和 Admit One 干扰",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["english_labels", "barcode", "admit_one"],
+      "input": {
+        "ocr_text": "ADMIT ONE\nCINESKY CINEMA Futian Store\nMOVIE Oppenheimer 奥本海默\nPLACE Hall 7\nDATE 2023-08-30\nTIME 21:15\nSEAT H08\nPRICE 78.00 RMB\nBARCODE 6900000000000\nCUSTOMER Guest"
+      },
+      "expected": {
+        "movie_title": "奥本海默",
+        "watched_at": "2023-08-30 21:15",
+        "cinema": "CINESKY CINEMA Futian Store",
+        "hall": "Hall 7",
+        "seat": "H08",
+        "ticket_price": "78.00 RMB"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "cinema_and_mall_names_before_unlabeled_title",
+      "name": "影院/商场名在前，片名无标签",
+      "category": "paper",
+      "complexity": "hard",
+      "noise_focus": ["cinema_before_title", "unlabeled_title", "mall_name"],
+      "input": {
+        "ocr_text": "星河寰宇影城\n龙岗店\n星河COCO Park\n会员专享\n消失的她\n4厅\nL排15座\n2023-06-25 22:05\n支付金额 41.80元\n取票号 000000"
+      },
+      "expected": {
+        "movie_title": "消失的她",
+        "watched_at": "2023-06-25 22:05",
+        "cinema": "星河寰宇影城 龙岗店",
+        "hall": "4厅",
+        "seat": "L排15座",
+        "ticket_price": "41.80元"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "only_date_no_time_with_ticket_time_noise",
+      "name": "只显示观影日期，同时出现 Ticket Time 噪声",
+      "category": "paper",
+      "complexity": "medium",
+      "noise_focus": ["date_only", "ticket_time_noise"],
+      "input": {
+        "ocr_text": "片名：热辣滚烫\n保利国际影城 大中华店\n一号厅\n座位：12排8座\n观影日期：2024年02月10日\nTicket Time 2024-02-09 23:58\n票价 45元"
+      },
+      "expected": {
+        "movie_title": "热辣滚烫",
+        "watched_at": "2024-02-10",
+        "cinema": "保利国际影城 大中华店",
+        "hall": "一号厅",
+        "seat": "12排8座",
+        "ticket_price": "45元"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "relative_time_without_absolute_date",
+      "name": "只有相对时间，不能编造日期",
+      "category": "mobile_screenshot",
+      "complexity": "hard",
+      "noise_focus": ["relative_date", "do_not_infer"],
+      "input": {
+        "ocr_text": "微信电影票\n长安的荔枝\nUME影城 安贞店\n今天 14:05 开场\n5号激光厅\n9排10座\n实付 ￥39.90\n取票码 000000"
+      },
+      "expected": {
+        "movie_title": "长安的荔枝",
+        "watched_at": "",
+        "cinema": "UME影城 安贞店",
+        "hall": "5号激光厅",
+        "seat": "9排10座",
+        "ticket_price": "￥39.90"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "missing_price_and_seat_hidden_fields",
+      "name": "电子票隐藏座位和票价，字段应留空",
+      "category": "mobile_screenshot",
+      "complexity": "medium",
+      "noise_focus": ["missing_fields", "qr_instruction"],
+      "input": {
+        "ocr_text": "淘票票\n海边的曼彻斯特\n百丽宫影城 IFS店\n2023-07-22 13:20\n激光厅\n请凭二维码取票\n座位信息请到影院取票后查看"
+      },
+      "expected": {
+        "movie_title": "海边的曼彻斯特",
+        "watched_at": "2023-07-22 13:20",
+        "cinema": "百丽宫影城 IFS店",
+        "hall": "激光厅",
+        "seat": "",
+        "ticket_price": ""
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "sparse_ocr_should_request_manual_review",
+      "name": "OCR 文本极少，应触发人工复核",
+      "category": "paper_blurry",
+      "complexity": "hard",
+      "noise_focus": ["sparse_ocr", "manual_review"],
+      "input": {
+        "ocr_text": "第八个嫌疑人\n2023-09-12"
+      },
+      "expected": {
+        "movie_title": "第八个嫌疑人",
+        "watched_at": "2023-09-12",
+        "cinema": "",
+        "hall": "",
+        "seat": "",
+        "ticket_price": ""
+      },
+      "assertions": {
+        "should_request_manual_review": true,
+        "requires_llm_correction": false
+      }
+    },
+    {
+      "id": "overlapped_garbled_lines_should_not_overfill",
+      "name": "重叠文字生成乱码组合，不能强填不确定字段",
+      "category": "paper_overlapped",
+      "complexity": "hard",
+      "noise_focus": ["overlapped_text", "garbled_codes", "empty_uncertain_fields"],
+      "input": {
+        "ocr_text": "影票免费优惠券\nX9L0O1I|888B\n暗恋·橘生淮南\n2022-06-02\n华夏优加影城\nA0000B1111\nSERVICE CHARGE\n请扫码进场"
+      },
+      "expected": {
+        "movie_title": "暗恋·橘生淮南",
+        "watched_at": "2022-06-02",
+        "cinema": "华夏优加影城",
+        "hall": "",
+        "seat": "",
+        "ticket_price": ""
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "ticket_template_table_headers_without_values",
+      "name": "表格票样标题多，字段值被 OCR 拼到同一行",
+      "category": "paper_table",
+      "complexity": "hard",
+      "noise_focus": ["table_headers", "merged_columns", "barcode"],
+      "input": {
+        "ocr_text": "电影票 MOVIE TICKET\n电影 影院 日期 时间 影厅 座位 票价\n孤注一掷 金逸影城双桥店 2023-08-12 18:45 8号厅 11排09座 ￥46.00\n票号 NO. 000000000\n条形码 BAR CODE\n儿童票请至前台补差价"
+      },
+      "expected": {
+        "movie_title": "孤注一掷",
+        "watched_at": "2023-08-12 18:45",
+        "cinema": "金逸影城双桥店",
+        "hall": "8号厅",
+        "seat": "11排09座",
+        "ticket_price": "￥46.00"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "same_screen_multiple_movie_recommendations",
+      "name": "同屏包含其他影片推荐，不能误识别推荐片名",
+      "category": "mobile_screenshot",
+      "complexity": "hard",
+      "noise_focus": ["multiple_movie_titles", "recommendation_noise"],
+      "input": {
+        "ocr_text": "我的电影票\n已出票\n志愿军：雄兵出击\n寰映影城 深圳湾万象城店\n7号厅\n3排03座\n2023-10-01 16:00\n票价 55元\n为你推荐\n坚如磐石\n前任4：英年早婚\n购票立减"
+      },
+      "expected": {
+        "movie_title": "志愿军：雄兵出击",
+        "watched_at": "2023-10-01 16:00",
+        "cinema": "寰映影城 深圳湾万象城店",
+        "hall": "7号厅",
+        "seat": "3排03座",
+        "ticket_price": "55元"
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    },
+    {
+      "id": "real_galaxy_faded_table_coupon_overlap",
+      "name": "真实纸质票根：掉色、错位、副券、服务费和左右联重叠",
+      "category": "paper_real_photo",
+      "complexity": "extreme",
+      "noise_focus": ["faded_print", "overlapped_coupon", "misaligned_table", "merged_columns", "garbled_ocr", "local_candidate_hints"],
+      "input": {
+        "ocr_text": "星河寰宇影城\n副券\nGalaxy Cinema\nPvdE CodPONs\n影厅\n时间\n影厅 HALL\n影片号DIS:X临境音4:45\nHALL\nTIME\n2026-03 15\nMOVIE\n副间HIMEX！\n座位\n非穷尽列举\n票价\n境音厅\n票类0排13座\nSEAT\nSERVICE CHAR6BO），00\nPRICE\n服务费\nTYPE\nSEPVCE CHARGEO.00\n手续费\n5 1445\n售票时枸人票\n自助扫码沸场\n1 看NP3座\nSELLING TIME\n2026-03\nTICKET TIME1 5 14:16\n取票时间\n4401346-\n票价589E\n工号\nID.\n票号\nKIOSK\n影城 PLACE\nNO. 44013461\n0Ud0/Hi\n星河寰子号\n城（福田"
+      },
+      "expected": {
+        "movie_title": "非穷尽列举",
+        "watched_at": "2026-03-15 14:45",
+        "cinema": "星河寰宇影城",
+        "hall": "DTS:X临境音厅",
+        "seat": "10排13座",
+        "ticket_price": ""
+      },
+      "assertions": {
+        "should_request_manual_review": false,
+        "requires_llm_correction": true
+      }
+    }
+  ]
+}

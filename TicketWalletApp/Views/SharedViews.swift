@@ -120,6 +120,19 @@ struct TMDBAttributionView: View {
     }
 }
 
+struct MovieMetadataAttributionView: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "film")
+                .foregroundStyle(TicketPalette.muted)
+            Text("影片资料优先由豆瓣资料代理补全，TMDB 作为兜底")
+                .foregroundStyle(TicketPalette.muted)
+        }
+        .font(.caption)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct PrimaryActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -145,6 +158,54 @@ struct SecondaryActionButtonStyle: ButtonStyle {
                     .stroke(TicketPalette.border, lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct LiquidGlassIconButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    var foreground: Color = .white
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(foreground)
+                .frame(width: 44, height: 44)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .overlay {
+                    Circle()
+                        .stroke(.white.opacity(0.34), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+struct LiquidGlassActionLabel: View {
+    let title: String
+    let systemImage: String
+    var tint: Color = .white
+    var fill: Color = .white.opacity(0.10)
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(.ultraThinMaterial)
+            .background(fill)
+            .clipShape(Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(.white.opacity(0.28), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.16), radius: 12, y: 5)
     }
 }
 
@@ -250,5 +311,9 @@ struct RatingPicker: View {
 extension Date {
     var ticketDateText: String {
         formatted(.dateTime.year().month(.twoDigits).day(.twoDigits).hour().minute())
+    }
+
+    var showtimeText: String {
+        formatted(.dateTime.hour().minute())
     }
 }

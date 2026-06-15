@@ -7,6 +7,7 @@ from urllib.request import Request, urlopen
 
 
 DEFAULT_UPSTREAM_ORIGIN = "https://sanchandb-proxy-vpzlnywcvj.cn-hongkong.fcapp.run"
+DEFAULT_DOUBAN_UPSTREAM_ORIGIN = ""
 DEV_SSL_CONTEXT = ssl._create_unverified_context()
 
 
@@ -19,26 +20,40 @@ class LocalDevProxyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             parsed = urlparse(self.path)
+            if parsed.path == "/movie/search":
+                upstream_origin = os.getenv("SANCHANGJI_DOUBAN_PROXY_UPSTREAM", DEFAULT_DOUBAN_UPSTREAM_ORIGIN)
+                if not upstream_origin:
+                    self.send_text(503, "Missing SANCHANGJI_DOUBAN_PROXY_UPSTREAM")
+                    return
+                self.proxy_request(self.upstream_url(upstream_origin, parsed.path, parsed.query))
+                return
+
             if not (parsed.path.startswith("/3/") or parsed.path.startswith("/t/")):
                 self.send_text(404, "Not found")
                 return
 
             upstream_origin = os.getenv("SANCHANGJI_PROXY_UPSTREAM", DEFAULT_UPSTREAM_ORIGIN)
-            upstream = urlparse(upstream_origin)
-            upstream_url = urlunparse((
-                upstream.scheme,
-                upstream.netloc,
-                parsed.path,
-                "",
-                parsed.query,
-                ""
-            ))
-            self.proxy_request(upstream_url)
+            self.proxy_request(self.upstream_url(upstream_origin, parsed.path, parsed.query))
         except Exception as error:
             self.send_text(502, f"Local proxy failed: {error.__class__.__name__}: {error}")
 
+    def upstream_url(self, upstream_origin, path, query):
+        upstream = urlparse(upstream_origin)
+        return urlunparse((
+            upstream.scheme,
+            upstream.netloc,
+            path,
+            "",
+            query,
+            ""
+        ))
+
     def proxy_request(self, upstream_url):
-        request = Request(upstream_url, headers={"Accept": "*/*"})
+        headers = {"Accept": "*/*"}
+        token = os.getenv("SANCHANGJI_DOUBAN_PROXY_TOKEN")
+        if token and "/movie/search" in upstream_url:
+            headers["Authorization"] = f"Bearer {token}"
+        request = Request(upstream_url, headers=headers)
         try:
             with urlopen(request, timeout=30, context=DEV_SSL_CONTEXT) as response:
                 body = response.read()

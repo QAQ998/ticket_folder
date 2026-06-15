@@ -50,6 +50,8 @@ private struct CalendarPlaceholderView: View {
 
 private struct SettingsPlaceholderView: View {
     private let tmdbClient = TMDBClient()
+    private let metadataService = MovieMetadataService()
+    private let llmRecognitionService = TicketLLMRecognitionService()
 
     var body: some View {
         NavigationStack {
@@ -64,13 +66,16 @@ private struct SettingsPlaceholderView: View {
 
                     TicketSectionCard(title: "隐私", systemImage: "lock.shield") {
                         SettingsRow(title: "设备端 OCR", value: "已启用")
-                        SettingsRow(title: "上传票根到服务器", value: "不会")
+                        SettingsRow(title: "空间文本校对", value: llmRecognitionService.isConfigured ? "已启用" : "未配置")
+                        SettingsRow(title: "模型接口", value: llmRecognitionService.providerDescription)
+                        SettingsRow(title: "上传票根图片", value: "不会")
                     }
 
                     TicketSectionCard(title: "电影资料", systemImage: "film") {
-                        SettingsRow(title: "资料来源", value: "TMDB")
-                        SettingsRow(title: "API Key", value: tmdbClient.isConfigured ? "已配置" : "未配置")
-                        TMDBAttributionView()
+                        SettingsRow(title: "资料来源", value: "豆瓣优先，TMDB 兜底")
+                        SettingsRow(title: "豆瓣代理", value: metadataService.isDoubanConfigured ? "已配置" : "未配置")
+                        SettingsRow(title: "TMDB 兜底", value: tmdbClient.isConfigured ? "已配置" : "未配置")
+                        MovieMetadataAttributionView()
                     }
                 }
                 .padding(24)

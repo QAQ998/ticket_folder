@@ -1,0 +1,16 @@
+name = "sanchangji-douban-metadata-proxy"
+main = "douban-metadata-proxy.js"
+compatibility_date = "2026-06-15"
+
+# Set this as a secret, not a plain variable:
+# wrangler secret put MOVIE_PROXY_TOKEN
+
+[[kv_namespaces]]
+binding = "METADATA_CACHE"
+id = "replace_with_metadata_cache_namespace_id"
+preview_id = "replace_with_metadata_cache_preview_namespace_id"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "replace_with_rate_limit_namespace_id"
+preview_id = "replace_with_rate_limit_preview_namespace_id"

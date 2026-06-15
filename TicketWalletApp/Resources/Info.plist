@@ -37,6 +37,24 @@
 	<string>$(TMDB_API_BASE_URL)</string>
 	<key>TMDB_IMAGE_BASE_URL</key>
 	<string>$(TMDB_IMAGE_BASE_URL)</string>
+	<key>DOUBAN_API_BASE_URL</key>
+	<string>$(DOUBAN_API_BASE_URL)</string>
+	<key>DOUBAN_API_KEY</key>
+	<string>$(DOUBAN_API_KEY)</string>
+	<key>LLM_API_KEY</key>
+	<string>$(LLM_API_KEY)</string>
+	<key>LLM_API_BASE_URL</key>
+	<string>$(LLM_API_BASE_URL)</string>
+	<key>LLM_API_STYLE</key>
+	<string>$(LLM_API_STYLE)</string>
+	<key>LLM_MODEL</key>
+	<string>$(LLM_MODEL)</string>
+	<key>OPENAI_API_KEY</key>
+	<string>$(OPENAI_API_KEY)</string>
+	<key>OPENAI_API_BASE_URL</key>
+	<string>$(OPENAI_API_BASE_URL)</string>
+	<key>OPENAI_MODEL</key>
+	<string>$(OPENAI_MODEL)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

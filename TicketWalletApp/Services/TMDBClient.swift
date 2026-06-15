@@ -28,6 +28,8 @@ struct TMDBMovieDetails: Decodable {
     let originalTitle: String?
     let releaseDate: String?
     let posterPath: String?
+    let runtime: Int?
+    let voteAverage: Double?
 
     var year: String {
         String((releaseDate ?? "").prefix(4))
@@ -39,6 +41,8 @@ struct TMDBMovieDetails: Decodable {
         case originalTitle = "original_title"
         case releaseDate = "release_date"
         case posterPath = "poster_path"
+        case runtime
+        case voteAverage = "vote_average"
     }
 }
 
@@ -83,8 +87,8 @@ struct TMDBClient {
         self.imageBaseURL = URL(string: cleanImageBaseURL) ?? URL(string: "https://image.tmdb.org/t/p/w500")!
         self.usesProxy = !cleanAPIBaseURL.isEmpty
         let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = 20
-        configuration.timeoutIntervalForResource = 30
+        configuration.timeoutIntervalForRequest = 8
+        configuration.timeoutIntervalForResource = 12
         configuration.waitsForConnectivity = true
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.urlCache = nil
@@ -260,11 +264,11 @@ enum TMDBError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            "还没有配置 TMDB API Key。配置后即可搜索电影、补全导演年份并缓存海报。"
+            "还没有配置 TMDB API Key。配置后可作为影片资料兜底来源。"
         case .requestFailed:
-            "电影资料暂时获取失败，可以稍后再试或手动填写。"
+            "电影资料暂时获取失败，请稍后再试。"
         case .invalidResponse:
-            "电影资料返回格式暂时无法识别，可以稍后再试或手动填写。"
+            "电影资料返回格式暂时无法识别，请稍后再试。"
         case .networkUnavailable(let reason):
             if let reason, !reason.isEmpty {
                 "无法连接 TMDB：\(reason)"
