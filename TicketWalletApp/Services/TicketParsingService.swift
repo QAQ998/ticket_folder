@@ -8,7 +8,7 @@ struct TicketParsingService {
             .filter { !$0.isEmpty }
 
         var draft = TicketDraft()
-        draft.movieTitle = inferTitle(from: lines)
+        draft.movieTitle = titleCandidates(from: lines).first ?? ""
         draft.watchedAt = inferDate(from: text) ?? .now
         draft.cinema = inferCinema(from: lines)
         draft.hall = firstLine(containing: ["厅", "Hall", "HALL"], in: lines)
@@ -17,12 +17,25 @@ struct TicketParsingService {
         return draft
     }
 
-    private func inferTitle(from lines: [String]) -> String {
+    func titleCandidates(from text: String) -> [String] {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return titleCandidates(from: lines)
+    }
+
+    func titleCandidates(from lines: [String]) -> [String] {
+        var seen = Set<String>()
+        var candidates: [String] = []
+
         for line in lines {
             guard let title = cleanedTitleCandidate(from: line) else { continue }
-            return title
+            guard !seen.contains(title) else { continue }
+            seen.insert(title)
+            candidates.append(title)
         }
-        return ""
+        return candidates
     }
 
     private func inferCinema(from lines: [String]) -> String {
@@ -42,7 +55,7 @@ struct TicketParsingService {
     }
 
     private func stripTitleLabel(from line: String) -> String {
-        let labels = ["影片名称", "电影名称", "影片名", "电影名", "片名", "影片", "电影"]
+        let labels = ["影片名称", "电影名称", "影片名", "电影名", "电影片", "片名", "影片", "电影"]
         for label in labels {
             if line.localizedCaseInsensitiveContains(label),
                let separatorRange = line.range(of: #"[:：]\s*"#, options: .regularExpression) {
@@ -172,6 +185,7 @@ struct TicketParsingService {
     private var cinemaKeywords: [String] {
         [
             "影院", "影城", "影厅", "电影院", "电影城", "电影公园", "Cinema", "CINEMA",
+            "China Film", "ChinaFilm", "CHINA FILM", "China film", "中国电影",
             "万达", "寰映", "CGV", "英皇", "百川", "百老汇", "Broadway", "UME",
             "博纳", "Bona", "金逸", "橙天嘉禾", "嘉禾", "中影", "星美", "耀莱",
             "卢米埃", "Lumiere", "SFC", "上影", "大地", "横店", "幸福蓝海",
